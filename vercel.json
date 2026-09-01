@@ -1,0 +1,16 @@
+{
+  "version": 2,
+  "name": "city-ops-dashboard",
+  "builds": [
+    {
+      "src": "frontend/**",
+      "use": "@vercel/static"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "frontend/dashboard.html"
+    }
+  ]
+}

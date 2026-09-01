@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: city-ops-backend
+    runtime: docker
+    plan: standard
+    envVars:
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: APP_VARIANT
+        value: unified
+    dockerfilePath: ./Dockerfile
+
+  - type: static
+    name: city-ops-frontend
+    runtime: static
+    buildCommand: echo "No build needed"
+    staticPublishPath: ./frontend

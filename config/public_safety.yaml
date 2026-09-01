@@ -1,0 +1,64 @@
+# Public Safety & Anomaly Detection Configuration
+# Pathway LLM App style YAML config
+
+$llm_model: "gpt-4o-mini"
+$embedding_model: "text-embedding-3-small"
+
+$llm: !pw.xpacks.llm.llms.OpenAIChat
+  model: $llm_model
+  retry_strategy: !pw.udfs.ExponentialBackoffRetryStrategy
+    max_retries: 3
+  cache_strategy: !pw.udfs.DiskCache
+  temperature: 0.2
+  max_tokens: 512
+
+$embedder: !pw.xpacks.llm.embedders.OpenAIEmbedder
+  model: $embedding_model
+
+# Data Sources
+sources:
+  safety_alerts:
+    type: csv_stream
+    path: "./data/safety_feeds/alerts.csv"
+    schema: SafetyAlertSchema
+    mode: streaming
+    refresh_interval: 2
+
+  iot_sensors:
+    type: csv_stream
+    path: "./data/safety_feeds/iot_sensors.csv"
+    schema: IoTReadingSchema
+    mode: streaming
+    refresh_interval: 2
+
+# Anomaly Detection Rules
+anomaly_rules:
+  - name: high_temperature
+    field: temperature_c
+    condition: "> 80"
+    severity: critical
+  - name: crowd_density
+    field: crowd_count
+    condition: "> 500"
+    severity: warning
+  - name: noise_level
+    field: decibel
+    condition: "> 90"
+    severity: warning
+
+# Document Store for RAG
+document_store:
+  parser: !pw.xpacks.llm.parsers.UnstructuredParser
+  splitter: !pw.xpacks.llm.splitters.TokenCountSplitter
+    max_tokens: 256
+  index:
+    type: usearch
+    metric: cos
+    dimensions: 1536
+
+# REST API Server
+server:
+  host: "0.0.0.0"
+  port: 8080
+  with_schema_endpoint: true
+  with_cors: true

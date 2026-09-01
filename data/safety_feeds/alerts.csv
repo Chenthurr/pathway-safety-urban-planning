@@ -1,0 +1,9 @@
+timestamp,source,location_lat,location_lon,alert_type,description,severity,metadata
+2026-08-31T14:00:00Z,social_media,40.7128,-74.0060,crowd,"Large gathering detected at Central Park entrance",medium,"tags: crowd-control"
+2026-08-31T14:05:00Z,911_dispatch,40.7580,-73.9855,fire,"Smoke reported from commercial building on 5th Ave",high,"units: E-23, L-12"
+2026-08-31T14:10:00Z,iot_sensor,40.6782,-73.9442,environmental,"Air quality degradation detected in Brooklyn district",medium,"sensor: AQ-104"
+2026-08-31T14:15:00Z,social_media,40.7282,-73.7942,accident,"Multi-vehicle collision on I-95 northbound",high,"tags: traffic, emergency"
+2026-08-31T14:20:00Z,911_dispatch,40.7489,-73.9680,crime,"Suspicious package reported at Grand Central",critical,"units: K-9, Bomb Squad"
+2026-08-31T14:25:00Z,iot_sensor,40.6892,-73.9441,environmental,"Elevated noise levels near construction site",low,"sensor: NOISE-07"
+2026-08-31T14:30:00Z,social_media,40.7614,-73.9776,crowd,"Protest march forming at Times Square",medium,"tags: crowd-control, protest"
+2026-08-31T14:35:00Z,911_dispatch,40.7056,-74.0134,fire,"Kitchen fire in restaurant, under control",low,"units: E-15"
