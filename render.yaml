@@ -10,3 +10,5 @@ services:
         sync: false
       - key: APP_VARIANT
         value: unified
+      - key: ENABLE_RAG
+        value: "false"
