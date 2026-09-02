@@ -29,6 +29,16 @@ class CityOperationsAPI:
             host=host, port=port, with_schema_endpoint=True, with_cors=True
         )
 
+    def register_health_endpoint(self) -> None:
+        class HealthQuery(pw.Schema):
+            pass
+
+        queries, writer = pw.io.http.rest_connector(
+            webserver=self.webserver, route="/healthz",
+            schema=HealthQuery, methods=("GET",)
+        )
+        writer(queries.select(query_id=pw.this.id, result="ok"))
+
     def register_safety_endpoints(self, anomalies: pw.Table) -> None:
         class Query(pw.Schema):
             severity: str = pw.column_definition(default_value="all")
