@@ -3,12 +3,24 @@ import pathway as pw
 from pathway.xpacks.llm.question_answering import BaseRAGQuestionAnswerer
 
 
-def stringify_row(*values: object) -> str:
-    return " | ".join(str(v) for v in values)
+def anomaly_text(anomaly_type: str, description: str, severity: str) -> str:
+    return f"{severity}: {anomaly_type} - {description}"
+
+
+def insight_text(category: str, insight: str, action: str) -> str:
+    return f"{category}: {insight} | action: {action}"
 
 
 def status_text(total: int, latest: object) -> str:
     return f"Total insights: {total}, latest update: {latest}"
+
+
+def metadata_alert(alert_type: str, severity: str) -> str:
+    return f"type:alert|alert_type:{alert_type}|severity:{severity}"
+
+
+def metadata_insight(category: str, action: str) -> str:
+    return f"type:insight|category:{category}|action:{action}"
 
 
 class CityOperationsAPI:
@@ -20,31 +32,45 @@ class CityOperationsAPI:
     def register_safety_endpoints(self, anomalies: pw.Table) -> None:
         class Query(pw.Schema):
             severity: str = pw.column_definition(default_value="all")
-            limit: int = pw.column_definition(default_value=10)
 
         queries, writer = pw.io.http.rest_connector(
             webserver=self.webserver, route="/safety/anomalies",
             schema=Query, methods=("POST",)
         )
-        filtered = queries.join_left(anomalies, queries.severity == anomalies.severity)
-        writer(filtered.select(
-            query_id=pw.this.id,
-            result=pw.apply(stringify_row, pw.this.severity),
+        joined = queries.join_left(
+            anomalies,
+            (queries.severity == "all") | (queries.severity == anomalies.severity),
+        )
+        writer(joined.select(
+            query_id=queries.id,
+            result=pw.apply(
+                anomaly_text,
+                anomalies.anomaly_type,
+                anomalies.description,
+                anomalies.severity,
+            ),
         ))
 
     def register_planning_endpoints(self, insights: pw.Table) -> None:
         class Query(pw.Schema):
             category: str = pw.column_definition(default_value="all")
-            limit: int = pw.column_definition(default_value=20)
 
         queries, writer = pw.io.http.rest_connector(
             webserver=self.webserver, route="/planning/insights",
             schema=Query, methods=("POST",)
         )
-        filtered = insights if False else insights
-        writer(filtered.select(
-            query_id=pw.this.id,
-            result=pw.apply(stringify_row, pw.this.category, pw.this.insight, pw.this.recommended_action),
+        joined = queries.join_left(
+            insights,
+            (queries.category == "all") | (queries.category == insights.category),
+        )
+        writer(joined.select(
+            query_id=queries.id,
+            result=pw.apply(
+                insight_text,
+                insights.category,
+                insights.insight,
+                insights.recommended_action,
+            ),
         ))
 
         class StatusQuery(pw.Schema):
@@ -59,8 +85,8 @@ class CityOperationsAPI:
             latest_update=pw.reducers.max(pw.this.timestamp),
         )
         status_writer(status.select(
-            query_id=pw.this.id,
-            result=pw.apply(status_text, pw.this.total_insights, pw.this.latest_update),
+            query_id=status.id,
+            result=pw.apply(status_text, status.total_insights, status.latest_update),
         ))
 
     def register_rag_endpoints(self, answerer: BaseRAGQuestionAnswerer) -> None:
