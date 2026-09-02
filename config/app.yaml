@@ -4,16 +4,8 @@
 $llm_model: "gpt-4o-mini"
 $embedding_model: "text-embedding-3-small"
 
-$llm: !pw.xpacks.llm.llms.OpenAIChat
-  model: $llm_model
-  retry_strategy: !pw.udfs.ExponentialBackoffRetryStrategy
-    max_retries: 3
-  cache_strategy: !pw.udfs.DiskCache
-  temperature: 0.2
-  max_tokens: 1024
-
-$embedder: !pw.xpacks.llm.embedders.OpenAIEmbedder
-  model: $embedding_model
+$llm: null
+$embedder: null
 
 # All Data Sources
 sources:
@@ -69,9 +61,9 @@ anomaly_rules:
 
 # Document Store for Unified RAG
 document_store:
-  parser: !pw.xpacks.llm.parsers.UnstructuredParser
-  splitter: !pw.xpacks.llm.splitters.TokenCountSplitter
-    max_tokens: 400
+  parser: UnstructuredParser
+  splitter: TokenCountSplitter
+  max_tokens: 400
   index:
     type: hybrid
     vector_index: usearch
