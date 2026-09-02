@@ -4,6 +4,18 @@ Uses BaseRAGQuestionAnswerer, VectorStoreServer, and OpenAIChat
 following the exact patterns from pathwaycom/llm-app templates.
 """
 import pathway as pw
+
+
+def anomaly_description(sensor: str, field: str, value: object, threshold: float) -> str:
+    return f"Sensor {sensor}: {field}={value} exceeds threshold {threshold}"
+
+
+def raw_sensor(sensor: str) -> str:
+    return str(sensor)
+
+
+def alert_metadata(alert_type: str, severity: str, lat: float, lon: float) -> str:
+    return f"type:{alert_type}|severity:{severity}|lat:{lat}|lon:{lon}"
 from pathway.xpacks.llm import embedders, llms, parsers, splitters
 from pathway.xpacks.llm.vector_store import VectorStoreServer
 from pathway.xpacks.llm.question_answering import BaseRAGQuestionAnswerer
@@ -59,20 +71,16 @@ class SafetyAnomalyDetector:
                 timestamp=pw.this.timestamp,
                 source=pw.this.sensor_id,
                 anomaly_type=field,
-                description=pw.apply(
-                    lambda s, v: f"Sensor {s}: {field}={v} exceeds threshold {threshold}",
-                    pw.this.sensor_id,
-                    value_expr,
-                ),
+                description=pw.apply(anomaly_description, pw.this.sensor_id, field, value_expr, threshold),
                 severity=severity,
                 location_lat=pw.this.location_lat,
                 location_lon=pw.this.location_lon,
-                raw_data=pw.apply(lambda s: str(s), pw.this.sensor_id),
+                raw_data=pw.apply(raw_sensor, pw.this.sensor_id),
             )
 
             anomaly_tables.append(flagged)
 
-        return pw.Table.concat_reindex(*anomaly_tables) if anomaly_tables else iot_table.select(
+        return anomaly_tables[0].concat_reindex(*anomaly_tables[1:]) if anomaly_tables else iot_table.select(
             timestamp=pw.this.timestamp,
             source=pw.this.sensor_id,
             anomaly_type=pw.apply(lambda _: "", pw.this.sensor_id),
@@ -92,10 +100,7 @@ class SafetyAnomalyDetector:
         # Prepare documents for embedding
         docs = alerts_table.select(
             data=pw.this.description,
-            metadata=pw.apply(
-                lambda t, s, lat, lon: f"type:{t}|severity:{s}|lat:{lat}|lon:{lon}",
-                pw.this.alert_type, pw.this.severity, pw.this.location_lat, pw.this.location_lon
-            )
+            metadata=pw.apply(alert_metadata, pw.this.alert_type, pw.this.severity, pw.this.location_lat, pw.this.location_lon)
         )
 
         # Create live vector store server with built-in usearch index
