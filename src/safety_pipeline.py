@@ -34,7 +34,7 @@ class SafetyAnomalyDetector:
 
     def apply_rules(self, iot_table: pw.Table, rules: list[dict]) -> pw.Table:
         """Apply configurable rule-based anomaly detection."""
-        all_anomalies = None
+        anomaly_tables = []
 
         for rule in rules:
             field = rule["field"]
@@ -70,9 +70,9 @@ class SafetyAnomalyDetector:
                 raw_data=pw.apply(lambda s: str(s), pw.this.sensor_id),
             )
 
-            all_anomalies = flagged if all_anomalies is None else all_anomalies.concat(flagged)
+            anomaly_tables.append(flagged)
 
-        return all_anomalies if all_anomalies is not None else iot_table.select(
+        return pw.Table.concat_reindex(*anomaly_tables) if anomaly_tables else iot_table.select(
             timestamp=pw.this.timestamp,
             source=pw.this.sensor_id,
             anomaly_type=pw.apply(lambda _: "", pw.this.sensor_id),
