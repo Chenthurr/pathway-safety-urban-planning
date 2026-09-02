@@ -11,7 +11,7 @@ class SafetyAlertSchema(pw.Schema):
     alert_type: str
     description: str
     severity: str
-    metadata: str = pw.ColumnDefinition(default_value="")
+    metadata: str = pw.column_definition(default_value="")
 
 
 class IoTReadingSchema(pw.Schema):
