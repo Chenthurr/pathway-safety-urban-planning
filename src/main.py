@@ -65,8 +65,29 @@ class ProxyHandler(BaseHTTPRequestHandler):
         return
 
 
+class HealthHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        if self.path == "/healthz":
+            body = b'{"status":"ok"}'
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+            return
+        self.send_response(404)
+        self.end_headers()
+    def log_message(self, fmt, *args):
+        return
+
+
 def run_unified() -> None:
     config = load_config("unified")
+    port = int(os.getenv("PORT", config["server"]["port"]))
+    health_server = ThreadingHTTPServer(("0.0.0.0", port), HealthHandler)
+    threading.Thread(target=health_server.serve_forever, daemon=True).start()
+    print(f"Render health listener bound to 0.0.0.0:{port}", flush=True)
+
     cfg = llm_config(config)
     sources = config["sources"]
     alerts = create_safety_alert_table(sources["safety_alerts"]["path"])
@@ -74,7 +95,6 @@ def run_unified() -> None:
     traffic = create_traffic_table(sources["traffic"]["path"])
     transit = create_transit_table(sources["transit"]["path"])
     environment = create_environment_table(sources["environment"]["path"])
-
     detector = SafetyAnomalyDetector(cfg)
     anomalies = detector.apply_rules(iot, config["anomaly_rules"])
     planner = UrbanPlanningEngine(cfg)
@@ -82,32 +102,19 @@ def run_unified() -> None:
         planner.compute_transit_insights(transit),
         planner.compute_environment_insights(environment),
     )
-
-    rag = CityRAGEngine(cfg)
-    vector_server = rag.build_unified_index(alerts, insights)
-    answerer = rag.create_rag_answerer(vector_server)
-
-    public_port = int(os.getenv("PORT", "10000"))
-    internal_port = public_port + 1
-    os.environ["PATHWAY_INTERNAL_URL"] = f"http://127.0.0.1:{internal_port}"
-    api = CityOperationsAPI(host="127.0.0.1", port=internal_port)
+    answerer = None
+    if os.getenv("ENABLE_RAG", "false").lower() == "true":
+        rag = CityRAGEngine(cfg)
+        vector_server = rag.build_unified_index(alerts, insights)
+        answerer = rag.create_rag_answerer(vector_server)
+    api = CityOperationsAPI(host="0.0.0.0", port=port)
     api.register_safety_endpoints(anomalies)
     api.register_planning_endpoints(insights)
     api.register_health_endpoint()
     if answerer is not None:
         api.register_rag_endpoints(answerer)
-
-    def run_pathway():
-        try:
-            pw.run()
-        except Exception as exc:
-            print(f"Pathway runtime failed: {exc}", flush=True)
-
-    threading.Thread(target=run_pathway, daemon=True).start()
-    print(f"Pathway API internal listener: 127.0.0.1:{internal_port}", flush=True)
-    print(f"Public API listener: 0.0.0.0:{public_port}", flush=True)
-    ThreadingHTTPServer(("0.0.0.0", public_port), ProxyHandler).serve_forever()
-
+    print(f"City Operations API configured on 0.0.0.0:{port}", flush=True)
+    api.run()
 
 def main() -> None:
     parser = argparse.ArgumentParser()
