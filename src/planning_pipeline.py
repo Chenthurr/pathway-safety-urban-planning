@@ -39,7 +39,7 @@ class UrbanPlanningEngine:
         # Generate insights
         insights = windowed.select(
             timestamp=windowed.last_updated,
-            category=pw.apply(lambda x: "traffic", str),
+            category="traffic",
             insight=pw.apply(
                 lambda i, s, v, c:
                 f"Intersection {i}: Avg speed {s:.1f} km/h, {v} vehicles, {c} high-congestion events",
