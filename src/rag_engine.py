@@ -5,6 +5,14 @@ from pathway.xpacks.llm.vector_store import VectorStoreServer
 from pathway.xpacks.llm.question_answering import BaseRAGQuestionAnswerer
 
 
+def metadata_alert(alert_type: str, severity: str) -> str:
+    return f"type:alert|alert_type:{alert_type}|severity:{severity}"
+
+
+def metadata_insight(category: str, action: str) -> str:
+    return f"type:insight|category:{category}|action:{action}"
+
+
 class CityRAGEngine:
     def __init__(self, llm_config: dict):
         self.embedder = embedders.OpenAIEmbedder(
@@ -20,17 +28,11 @@ class CityRAGEngine:
     def build_unified_index(self, alerts: pw.Table, insights: pw.Table) -> VectorStoreServer:
         alert_docs = alerts.select(
             data=pw.this.description,
-            metadata=pw.apply(
-                lambda alert_type, severity: f"type:alert|alert_type:{alert_type}|severity:{severity}",
-                pw.this.alert_type, pw.this.severity,
-            ),
+            metadata=pw.apply(metadata_alert, pw.this.alert_type, pw.this.severity),
         )
         insight_docs = insights.select(
             data=pw.this.insight,
-            metadata=pw.apply(
-                lambda category, action: f"type:insight|category:{category}|action:{action}",
-                pw.this.category, pw.this.recommended_action,
-            ),
+            metadata=pw.apply(metadata_insight, pw.this.category, pw.this.recommended_action),
         )
         docs = alert_docs.concat_reindex(insight_docs)
         return VectorStoreServer(docs, embedder=self.embedder, splitter=self.splitter)
