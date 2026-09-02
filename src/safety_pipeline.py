@@ -34,48 +34,54 @@ class SafetyAnomalyDetector:
 
     def apply_rules(self, iot_table: pw.Table, rules: list[dict]) -> pw.Table:
         """Apply configurable rule-based anomaly detection."""
-        # Build anomaly table incrementally
         all_anomalies = None
 
         for rule in rules:
             field = rule["field"]
             condition = rule["condition"]
             severity = rule["severity"]
-
-            # Parse condition (e.g., "> 80")
-            op = condition.split()[0]
-            threshold = float(condition.split()[1])
+            op, threshold_text = condition.split(maxsplit=1)
+            threshold = float(threshold_text)
 
             if field == "temperature_c":
-                flagged = iot_table.filter(pw.this.temperature_c > threshold)
+                value_expr = pw.this.temperature_c
+                flagged = iot_table.filter(value_expr > threshold)
             elif field == "crowd_count":
-                flagged = iot_table.filter(pw.this.crowd_count > threshold)
+                value_expr = pw.this.crowd_count
+                flagged = iot_table.filter(value_expr > threshold)
             elif field == "decibel":
-                flagged = iot_table.filter(pw.this.decibel > threshold)
+                value_expr = pw.this.decibel
+                flagged = iot_table.filter(value_expr > threshold)
             else:
                 continue
 
-            # Enrich with anomaly metadata matching AnomalySchema
             flagged = flagged.select(
                 timestamp=pw.this.timestamp,
-                source=pw.apply(lambda x: f"IoT-{x}", pw.this.sensor_id),
-                anomaly_type=pw.apply(lambda x: x, field),
+                source=pw.this.sensor_id,
+                anomaly_type=field,
                 description=pw.apply(
-                    lambda s, v, t: f"Sensor {s}: {field}={v} exceeds threshold {t}",
-                    pw.this.sensor_id, pw.this[field], threshold
+                    lambda s, v: f"Sensor {s}: {field}={v} exceeds threshold {threshold}",
+                    pw.this.sensor_id,
+                    value_expr,
                 ),
-                severity=pw.apply(lambda x: x, severity),
+                severity=severity,
                 location_lat=pw.this.location_lat,
                 location_lon=pw.this.location_lon,
-                raw_data=pw.this
+                raw_data=pw.apply(lambda s: str(s), pw.this.sensor_id),
             )
 
-            if all_anomalies is None:
-                all_anomalies = flagged
-            else:
-                all_anomalies = all_anomalies.concat(flagged)
+            all_anomalies = flagged if all_anomalies is None else all_anomalies.concat(flagged)
 
-        return all_anomalies if all_anomalies is not None else iot_table.filter(False)
+        return all_anomalies if all_anomalies is not None else iot_table.select(
+            timestamp=pw.this.timestamp,
+            source=pw.this.sensor_id,
+            anomaly_type=pw.apply(lambda _: "", pw.this.sensor_id),
+            description=pw.apply(lambda _: "", pw.this.sensor_id),
+            severity=pw.apply(lambda _: "", pw.this.sensor_id),
+            location_lat=pw.this.location_lat,
+            location_lon=pw.this.location_lon,
+            raw_data=pw.apply(lambda s: str(s), pw.this.sensor_id),
+        ).filter(False)
 
     def build_vector_store(self, alerts_table: pw.Table) -> VectorStoreServer:
         """
