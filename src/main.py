@@ -93,7 +93,9 @@ def run_unified() -> None:
     api = CityOperationsAPI(host="127.0.0.1", port=internal_port)
     api.register_safety_endpoints(anomalies)
     api.register_planning_endpoints(insights)
-    api.register_rag_endpoints(answerer)
+    api.register_health_endpoint()
+    if answerer is not None:
+        api.register_rag_endpoints(answerer)
 
     def run_pathway():
         try:
