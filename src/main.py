@@ -77,7 +77,7 @@ def run_public_safety():
     server_config = config["server"]
     api = CityOperationsAPI(
         host=server_config["host"],
-        port=server_config["port"]
+        port=int(os.getenv("PORT", server_config["port"]))
     )
     api.register_safety_endpoints(rule_anomalies)
     api.register_rag_endpoints(rag_answerer, vector_server)
