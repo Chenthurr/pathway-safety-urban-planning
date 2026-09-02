@@ -1,52 +1,9 @@
-# Urban Planning Configuration
-# Pathway LLM App style YAML config
-
 $llm_model: "gpt-4o-mini"
 $embedding_model: "text-embedding-3-small"
-
-$llm: !pw.xpacks.llm.llms.OpenAIChat
-  model: $llm_model
-  retry_strategy: !pw.udfs.ExponentialBackoffRetryStrategy
-    max_retries: 3
-  cache_strategy: !pw.udfs.DiskCache
-  temperature: 0.3
-  max_tokens: 1024
-
-$embedder: !pw.xpacks.llm.embedders.OpenAIEmbedder
-  model: $embedding_model
-
-# Data Sources
 sources:
-  traffic:
-    type: csv_stream
-    path: "./data/city_data/traffic.csv"
-    schema: TrafficSchema
-    mode: streaming
-    refresh_interval: 5
-
-  transit:
-    type: csv_stream
-    path: "./data/city_data/transit.csv"
-    schema: TransitSchema
-    mode: streaming
-    refresh_interval: 5
-
-  environment:
-    type: csv_stream
-    path: "./data/city_data/environment.csv"
-    schema: EnvironmentSchema
-    mode: streaming
-    refresh_interval: 10
-
-# Aggregation Windows (seconds)
-windows:
-  traffic: 300      # 5 minutes
-  transit: 300
-  environment: 600  # 10 minutes
-
-# REST API Server
+  traffic: {path: "./data/city_data/traffic.csv"}
+  transit: {path: "./data/city_data/transit.csv"}
+  environment: {path: "./data/city_data/environment.csv"}
 server:
   host: "0.0.0.0"
-  port: 8081
-  with_schema_endpoint: true
-  with_cors: true
+  port: 8080
