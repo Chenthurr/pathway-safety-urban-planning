@@ -67,7 +67,7 @@ class SafetyAnomalyDetector:
                 severity=pw.apply(lambda x: x, severity),
                 location_lat=pw.this.location_lat,
                 location_lon=pw.this.location_lon,
-                raw_data=pw.apply(lambda x: str(x), pw.this)
+                raw_data=pw.this
             )
 
             if all_anomalies is None:
