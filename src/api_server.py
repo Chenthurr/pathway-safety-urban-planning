@@ -14,8 +14,8 @@ class CityOperationsAPI:
 
     def register_safety_endpoints(self, anomaly_table: pw.Table):
         class AnomalyQuerySchema(pw.Schema):
-            severity: str = pw.ColumnDefinition(default_value="all")
-            limit: int = pw.ColumnDefinition(default_value=10)
+            severity: str = pw.column_definition(default_value="all")
+            limit: int = pw.column_definition(default_value=10)
         queries, writer = pw.io.http.rest_connector(
             webserver=self.webserver, route="/safety/anomalies",
             schema=AnomalyQuerySchema, methods=("POST",)
@@ -29,8 +29,8 @@ class CityOperationsAPI:
 
     def register_planning_endpoints(self, insights_table: pw.Table):
         class InsightQuerySchema(pw.Schema):
-            category: str = pw.ColumnDefinition(default_value="all")
-            limit: int = pw.ColumnDefinition(default_value=20)
+            category: str = pw.column_definition(default_value="all")
+            limit: int = pw.column_definition(default_value=20)
         queries, writer = pw.io.http.rest_connector(
             webserver=self.webserver, route="/planning/insights",
             schema=InsightQuerySchema, methods=("POST",)
@@ -73,7 +73,7 @@ class CityOperationsAPI:
 
         class RetrieveQuerySchema(pw.Schema):
             query: str
-            k: int = pw.ColumnDefinition(default_value=6)
+            k: int = pw.column_definition(default_value=6)
         retrieve_queries, retrieve_writer = pw.io.http.rest_connector(
             webserver=self.webserver, route="/v1/retrieve",
             schema=RetrieveQuerySchema, methods=("POST",)
