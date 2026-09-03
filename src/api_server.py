@@ -44,12 +44,10 @@ class CityOperationsAPI:
         joined = queries.join_left(anomalies, queries.severity == anomalies.severity)
         writer(joined.select(
             query_id=queries.id,
-            result=pw.apply(
-                anomaly_text,
-                anomalies.anomaly_type,
-                anomalies.description,
-                anomalies.severity,
-            ),
+            severity=anomalies.severity,
+            anomaly_type=anomalies.anomaly_type,
+            description=anomalies.description,
+            timestamp=anomalies.timestamp,
         ))
 
     def register_planning_endpoints(self, insights: pw.Table) -> None:
@@ -63,12 +61,11 @@ class CityOperationsAPI:
         joined = queries.join_left(insights, queries.category == insights.category)
         writer(joined.select(
             query_id=queries.id,
-            result=pw.apply(
-                insight_text,
-                insights.category,
-                insights.insight,
-                insights.recommended_action,
-            ),
+            category=insights.category,
+            insight=insights.insight,
+            confidence=insights.confidence,
+            recommended_action=insights.recommended_action,
+            timestamp=insights.timestamp,
         ))
 
         class StatusQuery(pw.Schema):

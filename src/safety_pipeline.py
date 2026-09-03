@@ -80,16 +80,39 @@ class SafetyAnomalyDetector:
 
             anomaly_tables.append(flagged)
 
-        return anomaly_tables[0].concat_reindex(*anomaly_tables[1:]) if anomaly_tables else iot_table.select(
+        if not anomaly_tables:
+            return iot_table.select(
+                timestamp=pw.this.timestamp,
+                source=pw.this.sensor_id,
+                anomaly_type=pw.apply(lambda _: "", pw.this.sensor_id),
+                description=pw.apply(lambda _: "", pw.this.sensor_id),
+                severity=pw.apply(lambda _: "", pw.this.sensor_id),
+                location_lat=pw.this.location_lat,
+                location_lon=pw.this.location_lon,
+                raw_data=pw.apply(lambda s: str(s), pw.this.sensor_id),
+            ).filter(False)
+
+        flagged_anomalies = anomaly_tables[0].concat_reindex(*anomaly_tables[1:])
+
+        # The /safety/anomalies endpoint matches on `queries.severity ==
+        # anomalies.severity`. The dashboard's default request sends
+        # severity="all", which never equals a real severity like
+        # "critical", so it always returned zero rows. Emitting a second
+        # copy of every anomaly tagged severity="all" makes that default
+        # query match everything, while specific severities still filter
+        # normally.
+        all_severity_copy = flagged_anomalies.select(
             timestamp=pw.this.timestamp,
-            source=pw.this.sensor_id,
-            anomaly_type=pw.apply(lambda _: "", pw.this.sensor_id),
-            description=pw.apply(lambda _: "", pw.this.sensor_id),
-            severity=pw.apply(lambda _: "", pw.this.sensor_id),
+            source=pw.this.source,
+            anomaly_type=pw.this.anomaly_type,
+            description=pw.this.description,
+            severity="all",
             location_lat=pw.this.location_lat,
             location_lon=pw.this.location_lon,
-            raw_data=pw.apply(lambda s: str(s), pw.this.sensor_id),
-        ).filter(False)
+            raw_data=pw.this.raw_data,
+        )
+
+        return flagged_anomalies.concat_reindex(all_severity_copy)
 
     def build_vector_store(self, alerts_table: pw.Table) -> VectorStoreServer:
         """

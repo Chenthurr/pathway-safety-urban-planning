@@ -11,4 +11,11 @@ services:
       - key: APP_VARIANT
         value: unified
       - key: ENABLE_RAG
-        value: "false"
+        value: "true"
+
+  - type: web
+    name: city-ops-dashboard
+    runtime: static
+    staticPublishPath: ./frontend
+    buildCommand: ""
+    envVars: []

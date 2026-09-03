@@ -1,9 +1,6 @@
 """City Operations Pathway application entry point."""
 import argparse
 import os
-import threading
-from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-from urllib.request import Request, urlopen
 import yaml
 import pathway as pw
 
@@ -12,8 +9,6 @@ from src.safety_pipeline import SafetyAnomalyDetector
 from src.planning_pipeline import UrbanPlanningEngine
 from src.rag_engine import CityRAGEngine
 from src.api_server import CityOperationsAPI
-
-PATHWAY_READY = threading.Event()
 
 
 def load_config(mode: str) -> dict:
@@ -26,67 +21,9 @@ def llm_config(config: dict) -> dict:
     return {"model": config.get("$llm_model", "gpt-4o-mini"), "embedding_model": config.get("$embedding_model", "text-embedding-3-small"), "temperature": 0.2, "max_tokens": 1024}
 
 
-class ProxyHandler(BaseHTTPRequestHandler):
-    def _handle(self):
-        if self.path == "/healthz":
-            body = b'{"status":"ok","pathway_ready":true}'
-            self.send_response(200)
-            self.send_header("Content-Type", "application/json")
-            self.send_header("Content-Length", str(len(body)))
-            self.end_headers()
-            self.wfile.write(body)
-            return
-        internal = os.environ["PATHWAY_INTERNAL_URL"] + self.path
-        length = int(self.headers.get("Content-Length", "0"))
-        data = self.rfile.read(length) if length else None
-        headers = {k: v for k, v in self.headers.items() if k.lower() not in {"host", "content-length"}}
-        try:
-            with urlopen(Request(internal, data=data, headers=headers, method=self.command), timeout=120) as response:
-                body = response.read()
-                self.send_response(response.status)
-                for k, v in response.headers.items():
-                    if k.lower() not in {"transfer-encoding", "connection", "content-length"}:
-                        self.send_header(k, v)
-                self.send_header("Content-Length", str(len(body)))
-                self.end_headers()
-                self.wfile.write(body)
-        except Exception as exc:
-            body = ('{"error":"Pathway backend unavailable","detail":"%s"}' % str(exc).replace('"', "'")).encode()
-            self.send_response(503)
-            self.send_header("Content-Type", "application/json")
-            self.send_header("Content-Length", str(len(body)))
-            self.end_headers()
-            self.wfile.write(body)
-
-    do_GET = _handle
-    do_POST = _handle
-    do_OPTIONS = _handle
-    def log_message(self, format, *args):
-        return
-
-
-class HealthHandler(BaseHTTPRequestHandler):
-    def do_GET(self):
-        if self.path == "/healthz":
-            body = b'{"status":"ok"}'
-            self.send_response(200)
-            self.send_header("Content-Type", "application/json")
-            self.send_header("Content-Length", str(len(body)))
-            self.end_headers()
-            self.wfile.write(body)
-            return
-        self.send_response(404)
-        self.end_headers()
-    def log_message(self, fmt, *args):
-        return
-
-
 def run_unified() -> None:
     config = load_config("unified")
     port = int(os.getenv("PORT", config["server"]["port"]))
-    health_server = ThreadingHTTPServer(("0.0.0.0", port), HealthHandler)
-    threading.Thread(target=health_server.serve_forever, daemon=True).start()
-    print(f"Render health listener bound to 0.0.0.0:{port}", flush=True)
 
     cfg = llm_config(config)
     sources = config["sources"]
@@ -102,11 +39,30 @@ def run_unified() -> None:
         planner.compute_transit_insights(transit),
         planner.compute_environment_insights(environment),
     )
+    # Same fix as the anomalies endpoint: /planning/insights defaults to
+    # category="all", which never equals a real category, so it always
+    # returned nothing. Emit a category="all" copy of every row so that
+    # default query matches everything.
+    insights_all_copy = insights.select(
+        timestamp=pw.this.timestamp,
+        category="all",
+        insight=pw.this.insight,
+        confidence=pw.this.confidence,
+        recommended_action=pw.this.recommended_action,
+    )
+    insights = insights.concat_reindex(insights_all_copy)
     answerer = None
     if os.getenv("ENABLE_RAG", "false").lower() == "true":
         rag = CityRAGEngine(cfg)
         vector_server = rag.build_unified_index(alerts, insights)
         answerer = rag.create_rag_answerer(vector_server)
+
+    # NOTE: previously a second plain-Python HTTP server was started on this
+    # same PORT to answer /healthz, in addition to Pathway's own webserver
+    # below. Two servers can't bind the same port -- that caused a startup
+    # crash / silently dead API on Render. Pathway's webserver already
+    # exposes /healthz via register_health_endpoint() below, so we rely on
+    # that instead.
     api = CityOperationsAPI(host="0.0.0.0", port=port)
     api.register_safety_endpoints(anomalies)
     api.register_planning_endpoints(insights)
@@ -115,6 +71,7 @@ def run_unified() -> None:
         api.register_rag_endpoints(answerer)
     print(f"City Operations API configured on 0.0.0.0:{port}", flush=True)
     api.run()
+
 
 def main() -> None:
     parser = argparse.ArgumentParser()
