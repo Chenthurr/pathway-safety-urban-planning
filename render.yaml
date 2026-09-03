@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: city-ops-backend
+    name: pathway-safety-urban-planning
     runtime: docker
     plan: standard
     dockerfilePath: ./Dockerfile
