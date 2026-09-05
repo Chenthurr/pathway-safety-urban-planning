@@ -85,31 +85,21 @@ class CityOperationsAPI:
         ))
 
     def register_rag_endpoints(self, answerer: BaseRAGQuestionAnswerer) -> None:
-        class AnswerQuery(pw.Schema):
-            prompt: str
-
         queries, writer = pw.io.http.rest_connector(
             webserver=self.webserver, route="/v2/answer",
-            schema=AnswerQuery, methods=("POST",)
+            schema=answerer.AnswerQuerySchema, methods=("POST",)
         )
         writer(answerer.answer_query(queries))
 
-        class RetrieveQuery(pw.Schema):
-            query: str
-            k: int = pw.column_definition(default_value=6)
-
         retrieve_queries, retrieve_writer = pw.io.http.rest_connector(
             webserver=self.webserver, route="/v1/retrieve",
-            schema=RetrieveQuery, methods=("POST",)
+            schema=answerer.RetrieveQuerySchema, methods=("POST",)
         )
         retrieve_writer(answerer.retrieve(retrieve_queries))
 
-        class StatsQuery(pw.Schema):
-            pass
-
         stats_queries, stats_writer = pw.io.http.rest_connector(
             webserver=self.webserver, route="/v1/statistics",
-            schema=StatsQuery, methods=("GET",)
+            schema=answerer.StatisticsQuerySchema, methods=("GET",)
         )
         stats_writer(answerer.statistics(stats_queries))
 
