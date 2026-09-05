@@ -41,6 +41,5 @@ class CityRAGEngine:
         return BaseRAGQuestionAnswerer(
             llm=self.llm,
             indexer=vector_server,
-            embedder=self.embedder,
             search_topk=5,
         )
