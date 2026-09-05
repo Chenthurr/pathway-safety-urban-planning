@@ -76,7 +76,7 @@ class CityOperationsAPI:
             schema=StatusQuery, methods=("GET",)
         )
         status = insights.reduce(
-            total_insights=pw.reducers.count(pw.this),
+            total_insights=pw.reducers.count(),
             latest_update=pw.reducers.max(pw.this.timestamp),
         )
         status_writer(status.select(
