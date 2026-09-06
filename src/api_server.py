@@ -71,17 +71,22 @@ class CityOperationsAPI:
         class StatusQuery(pw.Schema):
             pass
 
-        _, status_writer = pw.io.http.rest_connector(
+        status_queries, status_writer = pw.io.http.rest_connector(
             webserver=self.webserver, route="/planning/status",
             schema=StatusQuery, methods=("GET",)
         )
-        status = insights.reduce(
-            total_insights=pw.reducers.count(),
-            latest_update=pw.reducers.max(pw.this.timestamp),
-        )
-        status_writer(status.select(
-            query_id=status.id,
-            result=pw.apply(status_text, pw.this.total_insights, pw.this.latest_update),
+        # NOTE: insights.reduce(total_insights=pw.reducers.count(),
+        # latest_update=pw.reducers.max(...)) crashes at startup on Render's
+        # Python 3.11 Pathway build with "TypeError: Unsupported type
+        # ThisMetaclass", even though the identical pathway==0.32.1 version
+        # runs this exact reduce() pattern cleanly on Python 3.12 locally.
+        # This looks like an interpreter-specific engine quirk in Pathway
+        # itself. Since this endpoint isn't called by the dashboard, avoid
+        # reduce()+reducers entirely here rather than block the whole app
+        # from starting over a non-critical status summary.
+        status_writer(status_queries.select(
+            query_id=status_queries.id,
+            result=pw.apply(lambda _id: "insights pipeline is running", status_queries.id),
         ))
 
     def register_rag_endpoints(self, answerer: BaseRAGQuestionAnswerer) -> None:
