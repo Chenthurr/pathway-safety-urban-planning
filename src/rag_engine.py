@@ -15,11 +15,11 @@ def metadata_insight(category: str, action: str) -> str:
 
 class CityRAGEngine:
     def __init__(self, llm_config: dict):
-        self.embedder = embedders.OpenAIEmbedder(
-            model=llm_config.get("embedding_model", "text-embedding-3-small")
+        self.embedder = embedders.GeminiEmbedder(
+            model=llm_config.get("embedding_model", "gemini-embedding-001")
         )
-        self.llm = llms.OpenAIChat(
-            model=llm_config.get("model", "gpt-4o-mini"),
+        self.llm = llms.LiteLLMChat(
+            model=llm_config.get("model", "gemini/gemini-2.5-flash"),
             temperature=llm_config.get("temperature", 0.2),
             max_tokens=llm_config.get("max_tokens", 1024),
         )
