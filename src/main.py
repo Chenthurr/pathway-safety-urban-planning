@@ -20,7 +20,7 @@ def load_config(mode: str) -> dict:
 def llm_config(config: dict) -> dict:
     return {
         "model": config.get("$llm_model", "gemini/gemini-2.5-flash"),
-        "embedding_model": config.get("$embedding_model", "gemini-embedding-001"),
+        "embedding_model": config.get("$embedding_model", "models/text-embedding-004"),
         "temperature": 0.2,
         "max_tokens": 1024,
     }
@@ -29,7 +29,6 @@ def llm_config(config: dict) -> dict:
 def run_unified() -> None:
     config = load_config("unified")
     port = int(os.getenv("PORT", config["server"]["port"]))
-
     cfg = llm_config(config)
     sources = config["sources"]
     alerts = create_safety_alert_table(sources["safety_alerts"]["path"])
