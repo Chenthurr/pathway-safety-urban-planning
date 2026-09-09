@@ -1,9 +1,13 @@
 """Real-time public safety anomaly detection using Pathway LLM App patterns.
 
-Uses BaseRAGQuestionAnswerer, VectorStoreServer, and OpenAIChat
-following the exact patterns from pathwaycom/llm-app templates.
+Uses Gemini for all LLM-backed components so the unified Render deployment
+only requires GOOGLE_API_KEY.
 """
 import pathway as pw
+
+from pathway.xpacks.llm import embedders, llms, parsers, splitters
+from pathway.xpacks.llm.vector_store import VectorStoreServer
+from pathway.xpacks.llm.question_answering import BaseRAGQuestionAnswerer
 
 
 def anomaly_description(sensor: str, field: str, value: object, threshold: float) -> str:
@@ -16,30 +20,21 @@ def raw_sensor(sensor: str) -> str:
 
 def alert_metadata(alert_type: str, severity: str, lat: float, lon: float) -> str:
     return f"type:{alert_type}|severity:{severity}|lat:{lat}|lon:{lon}"
-from pathway.xpacks.llm import embedders, llms, parsers, splitters
-from pathway.xpacks.llm.vector_store import VectorStoreServer
-from pathway.xpacks.llm.question_answering import BaseRAGQuestionAnswerer
-
-from src.schemas import SafetyAlertSchema, IoTReadingSchema, AnomalySchema
 
 
 class SafetyAnomalyDetector:
-    """
-    Real-time anomaly detection combining rule-based filters
-    with LLM-powered semantic analysis via Pathway's dynamic RAG.
-
-    Follows the llm-app pattern: VectorStoreServer for indexing,
-    BaseRAGQuestionAnswerer for RAG queries.
-    """
+    """Real-time anomaly detection with optional Pathway RAG support."""
 
     def __init__(self, llm_config: dict):
-        self.embedder = embedders.OpenAIEmbedder(
-            model=llm_config.get("embedding_model", "text-embedding-3-small")
+        # Render's Gemini deployment must not instantiate OpenAI clients.
+        # GeminiEmbedder reads GOOGLE_API_KEY from the environment.
+        self.embedder = embedders.GeminiEmbedder(
+            model=llm_config.get("embedding_model", "gemini-embedding-001")
         )
-        self.llm = llms.OpenAIChat(
-            model=llm_config.get("model", "gpt-4o-mini"),
+        self.llm = llms.LiteLLMChat(
+            model=llm_config.get("model", "gemini/gemini-2.5-flash"),
             temperature=llm_config.get("temperature", 0.2),
-            max_tokens=llm_config.get("max_tokens", 512)
+            max_tokens=llm_config.get("max_tokens", 1024),
         )
         self.parser = parsers.UnstructuredParser()
         self.splitter = splitters.TokenCountSplitter(max_tokens=256)
@@ -77,7 +72,6 @@ class SafetyAnomalyDetector:
                 location_lon=pw.this.location_lon,
                 raw_data=pw.apply(raw_sensor, pw.this.sensor_id),
             )
-
             anomaly_tables.append(flagged)
 
         if not anomaly_tables:
@@ -94,13 +88,8 @@ class SafetyAnomalyDetector:
 
         flagged_anomalies = anomaly_tables[0].concat_reindex(*anomaly_tables[1:])
 
-        # The /safety/anomalies endpoint matches on `queries.severity ==
-        # anomalies.severity`. The dashboard's default request sends
-        # severity="all", which never equals a real severity like
-        # "critical", so it always returned zero rows. Emitting a second
-        # copy of every anomaly tagged severity="all" makes that default
-        # query match everything, while specific severities still filter
-        # normally.
+        # The dashboard's default request uses severity="all". Preserve
+        # specific severities while adding a matching "all" view.
         all_severity_copy = flagged_anomalies.select(
             timestamp=pw.this.timestamp,
             source=pw.this.source,
@@ -111,41 +100,32 @@ class SafetyAnomalyDetector:
             location_lon=pw.this.location_lon,
             raw_data=pw.this.raw_data,
         )
-
         return flagged_anomalies.concat_reindex(all_severity_copy)
 
     def build_vector_store(self, alerts_table: pw.Table) -> VectorStoreServer:
-        """
-        Build a live vector index over safety alerts.
-        Pathway updates this automatically as new alerts arrive.
-        Follows the llm-app VectorStoreServer pattern.
-        """
-        # Prepare documents for embedding
+        """Build a live vector index over safety alerts."""
         docs = alerts_table.select(
             data=pw.this.description,
-            metadata=pw.apply(alert_metadata, pw.this.alert_type, pw.this.severity, pw.this.location_lat, pw.this.location_lon)
+            metadata=pw.apply(
+                alert_metadata,
+                pw.this.alert_type,
+                pw.this.severity,
+                pw.this.location_lat,
+                pw.this.location_lon,
+            ),
         )
-
-        # Create live vector store server with built-in usearch index
-        # This is the exact pattern from llm-app templates
-        vector_server = VectorStoreServer(
+        return VectorStoreServer(
             docs,
             embedder=self.embedder,
             splitter=self.splitter,
-            parser=self.parser
+            parser=self.parser,
         )
 
-        return vector_server
-
     def create_rag_answerer(self, vector_server: VectorStoreServer) -> BaseRAGQuestionAnswerer:
-        """
-        Create a RAG question-answerer following llm-app BaseRAGQuestionAnswerer pattern.
-        Provides /v2/answer endpoint automatically.
-        """
-        rag = BaseRAGQuestionAnswerer(
+        """Create a Pathway RAG question-answerer."""
+        return BaseRAGQuestionAnswerer(
             llm=self.llm,
             indexer=vector_server,
             embedder=self.embedder,
-            search_topk=5
+            search_topk=5,
         )
-        return rag
