@@ -26,10 +26,8 @@ class SafetyAnomalyDetector:
     """Real-time anomaly detection with optional Pathway RAG support."""
 
     def __init__(self, llm_config: dict):
-        # Render's Gemini deployment must not instantiate OpenAI clients.
-        # GeminiEmbedder reads GOOGLE_API_KEY from the environment.
         self.embedder = embedders.GeminiEmbedder(
-            model=llm_config.get("embedding_model", "gemini-embedding-001")
+            model=llm_config.get("embedding_model", "models/text-embedding-004")
         )
         self.llm = llms.LiteLLMChat(
             model=llm_config.get("model", "gemini/gemini-2.5-flash"),
@@ -42,7 +40,6 @@ class SafetyAnomalyDetector:
     def apply_rules(self, iot_table: pw.Table, rules: list[dict]) -> pw.Table:
         """Apply configurable rule-based anomaly detection."""
         anomaly_tables = []
-
         for rule in rules:
             field = rule["field"]
             condition = rule["condition"]
@@ -62,7 +59,7 @@ class SafetyAnomalyDetector:
             else:
                 continue
 
-            flagged = flagged.select(
+            anomaly_tables.append(flagged.select(
                 timestamp=pw.this.timestamp,
                 source=pw.this.sensor_id,
                 anomaly_type=field,
@@ -71,8 +68,7 @@ class SafetyAnomalyDetector:
                 location_lat=pw.this.location_lat,
                 location_lon=pw.this.location_lon,
                 raw_data=pw.apply(raw_sensor, pw.this.sensor_id),
-            )
-            anomaly_tables.append(flagged)
+            ))
 
         if not anomaly_tables:
             return iot_table.select(
@@ -87,9 +83,6 @@ class SafetyAnomalyDetector:
             ).filter(False)
 
         flagged_anomalies = anomaly_tables[0].concat_reindex(*anomaly_tables[1:])
-
-        # The dashboard's default request uses severity="all". Preserve
-        # specific severities while adding a matching "all" view.
         all_severity_copy = flagged_anomalies.select(
             timestamp=pw.this.timestamp,
             source=pw.this.source,
