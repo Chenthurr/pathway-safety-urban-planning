@@ -1,8 +1,8 @@
 # Unified City Operations App
 # Pathway LLM App style master config
 
-$llm_model: "gpt-4o-mini"
-$embedding_model: "text-embedding-3-small"
+$llm_model: "gemini/gemini-2.5-flash"
+$embedding_model: "gemini-embedding-001"
 
 $llm: null
 $embedder: null
