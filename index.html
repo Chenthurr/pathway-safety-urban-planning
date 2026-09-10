@@ -1,419 +1,151 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>City Operations Center | Pathway AI</title>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-            background: #0a0e27;
-            color: #e2e8f0;
-            min-height: 100vh;
-        }
-        .header {
-            background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
-            padding: 1.5rem 2rem;
-            box-shadow: 0 4px 20px rgba(59,130,246,0.3);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .header h1 { font-size: 1.8rem; font-weight: 700; }
-        .header p { opacity: 0.8; margin-top: 0.25rem; }
-        .live-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-            background: rgba(255,255,255,0.15);
-            padding: 0.5rem 1rem;
-            border-radius: 9999px;
-            font-size: 0.875rem;
-        }
-        .pulse {
-            width: 8px; height: 8px;
-            background: #4ade80;
-            border-radius: 50%;
-            animation: pulse 2s infinite;
-        }
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
-        }
-        .container { max-width: 1400px; margin: 0 auto; padding: 2rem; }
-        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(380px, 1fr)); gap: 1.5rem; }
-        .card {
-            background: #1e293b;
-            border-radius: 12px;
-            padding: 1.5rem;
-            border: 1px solid #334155;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
-            transition: transform 0.2s;
-        }
-        .card:hover { transform: translateY(-2px); }
-        .card h2 { color: #60a5fa; margin-bottom: 1rem; font-size: 1.2rem; display: flex; align-items: center; gap: 0.5rem; }
-        .status-badge {
-            display: inline-block;
-            padding: 0.25rem 0.75rem;
-            border-radius: 9999px;
-            font-size: 0.75rem;
-            font-weight: 600;
-            text-transform: uppercase;
-        }
-        .status-critical { background: #dc2626; color: white; }
-        .status-high { background: #ea580c; color: white; }
-        .status-medium { background: #ca8a04; color: white; }
-        .status-low { background: #16a34a; color: white; }
-        .metric { display: flex; justify-content: space-between; padding: 0.75rem 0; border-bottom: 1px solid #334155; }
-        .metric:last-child { border-bottom: none; }
-        .metric-label { color: #94a3b8; }
-        .metric-value { font-weight: 600; color: #f8fafc; }
-        .alert-item {
-            padding: 0.75rem;
-            margin: 0.5rem 0;
-            border-radius: 8px;
-            background: #0f172a;
-            border-left: 4px solid;
-            animation: slideIn 0.3s ease;
-        }
-        @keyframes slideIn {
-            from { opacity: 0; transform: translateX(-10px); }
-            to { opacity: 1; transform: translateX(0); }
-        }
-        .query-box {
-            width: 100%;
-            padding: 0.75rem;
-            background: #0f172a;
-            border: 1px solid #475569;
-            border-radius: 8px;
-            color: #e2e8f0;
-            margin-bottom: 0.5rem;
-            font-size: 1rem;
-        }
-        .query-box:focus {
-            outline: none;
-            border-color: #3b82f6;
-        }
-        .btn {
-            background: #3b82f6;
-            color: white;
-            border: none;
-            padding: 0.6rem 1.5rem;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: 600;
-            font-size: 0.95rem;
-            transition: background 0.2s;
-        }
-        .btn:hover { background: #2563eb; }
-        .response-box {
-            margin-top: 1rem;
-            padding: 1rem;
-            background: #0f172a;
-            border-radius: 8px;
-            min-height: 120px;
-            white-space: pre-wrap;
-            font-family: 'Consolas', 'Monaco', monospace;
-            font-size: 0.9rem;
-            line-height: 1.5;
-            border: 1px solid #334155;
-        }
-        .endpoint-list {
-            background: #0f172a;
-            border-radius: 8px;
-            padding: 1rem;
-            margin-top: 0.5rem;
-        }
-        .endpoint-list code {
-            color: #4ade80;
-            font-family: 'Consolas', monospace;
-            font-size: 0.85rem;
-        }
-        .endpoint-list li {
-            margin: 0.5rem 0;
-            color: #94a3b8;
-        }
-        .refresh-btn {
-            background: #0f172a;
-            border: 1px solid #475569;
-            color: #94a3b8;
-            padding: 0.3rem 0.8rem;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 0.8rem;
-        }
-        .refresh-btn:hover { color: #e2e8f0; border-color: #94a3b8; }
-        .loading { color: #60a5fa; }
-        .error { color: #f87171; }
-        .success { color: #4ade80; }
-    </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>City Operations Center | Pathway AI</title>
+<style>
+:root{--bg:#07111f;--panel:#0d1b2d;--panel2:#10233a;--text:#eaf2ff;--muted:#8fa4bd;--line:#20344c;--ok:#39d98a;--warn:#ffcc66;--danger:#ff6b6b;--accent:#61a8ff}
+*{box-sizing:border-box}body{margin:0;font-family:Inter,Segoe UI,Arial,sans-serif;background:linear-gradient(135deg,#06101d,#0b1728 55%,#07111f);color:var(--text);min-height:100vh}
+header{background:linear-gradient(135deg,#183b82,#3478df);padding:24px 30px;display:flex;justify-content:space-between;align-items:center;gap:16px;box-shadow:0 8px 28px rgba(0,0,0,.25)}
+header h1{margin:0;font-size:28px}header p{margin:6px 0 0;color:#d9e7ff}.live{display:flex;align-items:center;gap:9px;background:rgba(255,255,255,.14);padding:9px 14px;border-radius:999px;font-weight:700;font-size:13px}.dot{width:9px;height:9px;border-radius:50%;background:#4ade80;box-shadow:0 0 12px #4ade80}.dot.off{background:#ff6b6b;box-shadow:none}
+main{max-width:1250px;margin:auto;padding:24px}.toolbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;color:var(--muted);font-size:13px}.btn{background:#0c1a2b;color:#d9e7ff;border:1px solid var(--line);border-radius:9px;padding:8px 12px;cursor:pointer}.btn.primary{background:var(--accent);color:#06101d;border:0;font-weight:800}.btn:disabled{opacity:.6;cursor:wait}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}.card{background:rgba(13,27,45,.92);border:1px solid var(--line);border-radius:15px;padding:18px;box-shadow:0 10px 26px rgba(0,0,0,.15)}.label{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.8px}.value{font-size:24px;font-weight:800;margin-top:8px}.sub{font-size:12px;color:var(--muted);margin-top:5px}
+.two{display:grid;grid-template-columns:1.35fr .65fr;gap:14px;margin-top:14px}.section h2{font-size:16px;margin:0 0 13px}.list{display:grid;gap:9px;max-height:320px;overflow:auto}.item{background:var(--panel2);border:1px solid #1b324c;border-radius:11px;padding:11px 12px}.item strong{display:block;font-size:13px}.item span{display:block;color:var(--muted);font-size:12px;margin-top:4px;line-height:1.45}.empty{color:var(--muted);font-size:13px;padding:14px 0}.sev{display:inline-block;margin-right:7px;padding:2px 7px;border-radius:999px;font-size:10px;font-weight:800;text-transform:uppercase}.critical{background:#7f1d1d;color:#fecaca}.high{background:#7c2d12;color:#fed7aa}.medium{background:#713f12;color:#fde68a}.low{background:#14532d;color:#bbf7d0}
+.chat{margin-top:14px}.chatbox{display:flex;gap:9px}.chatbox input{flex:1;background:#081625;color:var(--text);border:1px solid var(--line);border-radius:10px;padding:13px;font-size:14px;outline:none}.chatbox input:focus{border-color:var(--accent)}.answer{margin-top:12px;background:#081625;border:1px solid var(--line);border-radius:11px;padding:14px;min-height:80px;white-space:pre-wrap;line-height:1.55;font-size:13px}.error{color:#ff8b8b}.ok{color:#8ff0bd}.footer{margin-top:18px;color:var(--muted);font-size:11px;text-align:center}.footer a{color:#61a8ff}
+@media(max-width:900px){.grid{grid-template-columns:repeat(2,1fr)}.two{grid-template-columns:1fr}}@media(max-width:560px){.grid{grid-template-columns:1fr}header{padding:20px;flex-direction:column;align-items:flex-start}main{padding:16px}}
+</style>
 </head>
 <body>
-    <div class="header">
-        <div>
-            <h1>🌆 City Operations Center</h1>
-            <p>Real-time Public Safety & Urban Planning powered by Pathway AI LLM App</p>
-        </div>
-        <div class="live-badge">
-            <span class="pulse"></span>
-            Live Streaming
-        </div>
+<header>
+  <div><h1>🌆 City Operations Center</h1><p>Real-time Public Safety & Urban Planning powered by Pathway + Gemini</p></div>
+  <div class="live"><span id="liveDot" class="dot"></span><span id="liveText">Connecting to Pathway…</span></div>
+</header>
+<main>
+  <div class="toolbar"><span id="updated">Waiting for live data…</span><button class="btn" id="refresh" onclick="loadAll()">Refresh</button></div>
+  <div class="grid">
+    <div class="card"><div class="label">Safety detection</div><div class="value" id="safety">Checking…</div><div class="sub">Pathway anomaly stream</div></div>
+    <div class="card"><div class="label">Active anomalies</div><div class="value" id="anomalyCount">—</div><div class="sub" id="criticalCount">Critical: —</div></div>
+    <div class="card"><div class="label">Planning engine</div><div class="value" id="planning">Checking…</div><div class="sub">Traffic · transit · environment</div></div>
+    <div class="card"><div class="label">Gemini RAG</div><div class="value" id="rag">Checking…</div><div class="sub">Live Pathway vector index</div></div>
+  </div>
+
+  <div class="two">
+    <div class="card section"><h2>🚨 Live safety anomalies</h2><div id="anomalies" class="list"><div class="empty">Loading Pathway stream…</div></div></div>
+    <div class="card section"><h2>🏙️ Planning insights</h2><div id="planningList" class="list"><div class="empty">Loading live insights…</div></div></div>
+  </div>
+
+  <div class="card chat">
+    <div class="section"><h2>🤖 Ask the Gemini RAG assistant</h2>
+      <div class="chatbox"><input id="question" placeholder="e.g. What areas need immediate attention?" onkeydown="if(event.key==='Enter')askRag()"><button class="btn primary" id="ask" onclick="askRag()">Ask</button></div>
+      <div id="answer" class="answer">Ask a question. The request is sent to the Pathway /v2/answer endpoint running on Render, where Gemini answers using the live indexed data.</div>
     </div>
+  </div>
 
-    <div class="container">
-        <div class="grid">
-            <!-- Safety Panel -->
-            <div class="card">
-                <h2>🚨 Live Safety Alerts</h2>
-                <div id="safety-alerts">
-                    <div class="loading">Loading alerts...</div>
-                </div>
-                <button class="refresh-btn" onclick="loadSafetyAlerts()" style="margin-top:0.5rem;">Refresh</button>
-            </div>
+  <div class="footer">GitHub Pages UI → Render → Pathway real-time pipeline → Gemini 2.5 Flash · <a href="https://pathway-safety-urban-planning.onrender.com/healthz" target="_blank" rel="noopener">health</a> · <a href="https://pathway-safety-urban-planning.onrender.com/v1/statistics" target="_blank" rel="noopener">RAG statistics</a></div>
+</main>
+<script>
+const API_BASE='https://pathway-safety-urban-planning.onrender.com';
+const $=id=>document.getElementById(id);
 
-            <!-- Anomaly Detection -->
-            <div class="card">
-                <h2>🔍 Anomaly Detection</h2>
-                <div id="anomalies">
-                    <div class="metric">
-                        <span class="metric-label">Active Anomalies</span>
-                        <span class="metric-value" id="anomaly-count">--</span>
-                    </div>
-                    <div class="metric">
-                        <span class="metric-label">Critical</span>
-                        <span class="metric-value" id="critical-count" style="color:#f87171;">--</span>
-                    </div>
-                    <div class="metric">
-                        <span class="metric-label">Last Detection</span>
-                        <span class="metric-value" id="last-detection">--</span>
-                    </div>
-                </div>
-                <button class="refresh-btn" onclick="loadAnomalies()" style="margin-top:0.5rem;">Refresh</button>
-            </div>
+async function fetchJson(path, options={}, timeout=20000){
+  const controller=new AbortController();
+  const timer=setTimeout(()=>controller.abort(),timeout);
+  try{
+    const r=await fetch(API_BASE+path,{...options,signal:controller.signal,headers:{Accept:'application/json','Content-Type':'application/json',...(options.headers||{})}});
+    const text=await r.text();
+    let data={};
+    try{data=text?JSON.parse(text):{}}catch{data={raw:text}};
+    if(!r.ok) throw new Error(r.status+' '+(r.statusText||'Request failed'));
+    return data;
+  }finally{clearTimeout(timer)}
+}
 
-            <!-- Traffic Panel -->
-            <div class="card">
-                <h2>🚦 Traffic Status</h2>
-                <div id="traffic-stats">
-                    <div class="metric">
-                        <span class="metric-label">Live Status</span>
-                        <span class="metric-value" id="traffic-status" style="font-weight:400; text-align:right;">--</span>
-                    </div>
-                    <div class="metric">
-                        <span class="metric-label">Recommended Action</span>
-                        <span class="metric-value" id="traffic-action">--</span>
-                    </div>
-                    <div class="metric">
-                        <span class="metric-label">Last Updated</span>
-                        <span class="metric-value" id="traffic-updated">--</span>
-                    </div>
-                </div>
-                <button class="refresh-btn" onclick="loadTraffic()" style="margin-top:0.5rem;">Refresh</button>
-            </div>
+function unwrapRows(data){
+  let rows=[];
+  if(Array.isArray(data)) rows=data;
+  else if(data&&Array.isArray(data.result)) rows=data.result;
+  else if(data&&data.result!==undefined) rows=[data];
+  else if(data&&typeof data==='object') rows=[data];
+  return rows.flatMap(row=>{
+    if(row&&typeof row.result==='string'){
+      try{return [JSON.parse(row.result)]}catch{return [row]}
+    }
+    return [row];
+  });
+}
 
-            <!-- Transit Panel -->
-            <div class="card">
-                <h2>🚌 Transit Operations</h2>
-                <div id="transit-stats">
-                    <div class="metric">
-                        <span class="metric-label">Live Status</span>
-                        <span class="metric-value" id="transit-status" style="font-weight:400; text-align:right;">--</span>
-                    </div>
-                    <div class="metric">
-                        <span class="metric-label">Recommended Action</span>
-                        <span class="metric-value" id="transit-action">--</span>
-                    </div>
-                    <div class="metric">
-                        <span class="metric-label">Last Updated</span>
-                        <span class="metric-value" id="transit-updated">--</span>
-                    </div>
-                </div>
-                <button class="refresh-btn" onclick="loadTransit()" style="margin-top:0.5rem;">Refresh</button>
-            </div>
+function setOnline(online){
+  $('liveDot').classList.toggle('off',!online);
+  $('liveText').textContent=online?'LIVE — Pathway connected':'OFFLINE — API unavailable';
+}
 
-            <!-- RAG Query -->
-            <div class="card" style="grid-column: span 2;">
-                <h2>🤖 AI Planning Assistant (RAG)</h2>
-                <p style="color: #94a3b8; margin-bottom: 1rem;">
-                    Ask questions about city operations. The AI retrieves real-time data from the live vector index using Pathway's BaseRAGQuestionAnswerer.
-                </p>
-                <input type="text" class="query-box" id="rag-query" 
-                       placeholder="e.g., 'What areas need immediate attention?' or 'Summarize current traffic conditions'">
-                <button class="btn" onclick="queryRAG()">Ask AI Assistant</button>
-                <div class="response-box" id="rag-response">Response will appear here...</div>
-            </div>
+async function loadSafety(){
+  const severities=['critical','high','medium','low'];
+  const responses=await Promise.allSettled(severities.map(severity=>fetchJson('/safety/anomalies',{method:'POST',body:JSON.stringify({severity})})));
+  const rows=[];
+  responses.forEach(r=>{if(r.status==='fulfilled') rows.push(...unwrapRows(r.value))});
+  const unique=new Map();
+  rows.forEach(x=>{const key=[x.timestamp,x.anomaly_type,x.description,x.severity].join('|');unique.set(key,x)});
+  const data=[...unique.values()].sort((a,b)=>String(b.timestamp||'').localeCompare(String(a.timestamp||'')));
+  $('anomalyCount').textContent=data.length;
+  $('criticalCount').textContent='Critical: '+data.filter(x=>String(x.severity).toLowerCase()==='critical').length;
+  $('anomalies').innerHTML=data.length?data.slice(0,12).map(x=>{
+    const sev=String(x.severity||'medium').toLowerCase();
+    return `<div class="item"><strong><span class="sev ${sev}">${escapeHtml(sev)}</span>${escapeHtml(x.anomaly_type||'Safety event')}</strong><span>${escapeHtml(x.description||'')} · ${formatTime(x.timestamp)}</span></div>`;
+  }).join(''):'<div class="empty">No anomaly records currently returned.</div>';
+  return responses.some(r=>r.status==='fulfilled');
+}
 
-            <!-- Environment -->
-            <div class="card">
-                <h2>🌤️ Environment</h2>
-                <div id="env-stats">
-                    <div class="metric">
-                        <span class="metric-label">Live Status</span>
-                        <span class="metric-value" id="env-status" style="font-weight:400; text-align:right;">--</span>
-                    </div>
-                    <div class="metric">
-                        <span class="metric-label">Recommended Action</span>
-                        <span class="metric-value" id="env-action">--</span>
-                    </div>
-                    <div class="metric">
-                        <span class="metric-label">Last Updated</span>
-                        <span class="metric-value" id="env-updated">--</span>
-                    </div>
-                </div>
-                <button class="refresh-btn" onclick="loadEnvironment()" style="margin-top:0.5rem;">Refresh</button>
-            </div>
+async function loadPlanning(){
+  const categories=['traffic','transit','environment'];
+  const responses=await Promise.allSettled(categories.map(category=>fetchJson('/planning/insights',{method:'POST',body:JSON.stringify({category})})));
+  const rows=[];
+  responses.forEach(r=>{if(r.status==='fulfilled') rows.push(...unwrapRows(r.value))});
+  const latest={};
+  rows.forEach(x=>{if(x.category) latest[x.category]=x});
+  const labels={traffic:'🚦 Traffic',transit:'🚌 Transit',environment:'🌤️ Environment'};
+  $('planningList').innerHTML=categories.map(category=>{
+    const x=latest[category];
+    return x?`<div class="item"><strong>${labels[category]}</strong><span>${escapeHtml(x.insight||'No insight')}<br><b>Action:</b> ${escapeHtml(x.recommended_action||'—')} · ${formatTime(x.timestamp)}</span></div>`:`<div class="item"><strong>${labels[category]}</strong><span>No live insight returned.</span></div>`;
+  }).join('');
+  return responses.some(r=>r.status==='fulfilled');
+}
 
-            <!-- API Endpoints -->
-            <div class="card">
-                <h2>🔗 API Endpoints</h2>
-                <div class="endpoint-list">
-                    <ul>
-                        <li><code>POST /safety/anomalies</code> - Get safety anomalies</li>
-                        <li><code>POST /planning/insights</code> - Get city insights</li>
-                        <li><code>GET /planning/status</code> - City health dashboard</li>
-                        <li><code>POST /v2/answer</code> - RAG Q&A</li>
-                        <li><code>POST /v1/retrieve</code> - Vector search</li>
-                        <li><code>GET /v1/statistics</code> - Index stats</li>
-                        <li><code>GET /_schema</code> - OpenAPI docs</li>
-                    </ul>
-                </div>
-            </div>
-        </div>
-    </div>
+async function checkRag(){
+  try{await fetchJson('/v1/statistics',{},10000);$('rag').textContent='Ready';return true}catch{$('rag').textContent='Unavailable';return false}
+}
 
-    <script>
-        const API_BASE = "https://pathway-safety-urban-planning.onrender.com";
+async function loadAll(){
+  $('refresh').disabled=true;
+  try{
+    const health=await fetchJson('/healthz',{},10000);
+    setOnline(true);$('safety').textContent='Enabled';$('planning').textContent='Running';
+    const [safetyOk,planningOk]=await Promise.all([loadSafety(),loadPlanning()]);
+    await checkRag();
+    if(!safetyOk) $('safety').textContent='No data';
+    if(!planningOk) $('planning').textContent='No data';
+    $('updated').textContent='Last live refresh: '+new Date().toLocaleTimeString();
+  }catch(e){
+    setOnline(false);$('safety').textContent='Offline';$('planning').textContent='Offline';$('rag').textContent='Offline';$('updated').textContent='Pathway API error: '+e.message;
+  }finally{$('refresh').disabled=false}
+}
 
-        async function queryRAG() {
-            const query = document.getElementById('rag-query').value;
-            const responseBox = document.getElementById('rag-response');
-            if (!query.trim()) {
-                responseBox.textContent = "Please enter a question.";
-                responseBox.className = "response-box error";
-                return;
-            }
-            responseBox.textContent = "🤔 Thinking... retrieving from live vector index...";
-            responseBox.className = "response-box loading";
+async function askRag(){
+  const q=$('question').value.trim();if(!q)return;
+  const button=$('ask');button.disabled=true;$('answer').className='answer';$('answer').textContent='Thinking… querying the live Pathway vector index with Gemini…';
+  try{
+    const data=await fetchJson('/v2/answer',{method:'POST',body:JSON.stringify({prompt:q,return_context_docs:false})},90000);
+    const answer=data.answer||data.result||data.response||data;
+    $('answer').textContent=typeof answer==='string'?answer:JSON.stringify(answer,null,2);
+    $('answer').className='answer ok';
+  }catch(e){$('answer').textContent='Unable to query Pathway Gemini RAG: '+e.message;$('answer').className='answer error'}
+  finally{button.disabled=false}
+}
 
-            try {
-                const res = await fetch(`${API_BASE}/v2/answer`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ prompt: query })
-                });
-                const data = await res.json();
-                responseBox.textContent = data.result || JSON.stringify(data, null, 2);
-                responseBox.className = "response-box success";
-            } catch (e) {
-                responseBox.textContent = "Error: " + e.message + "\n\nMake sure the Pathway server is running on port 8080.";
-                responseBox.className = "response-box error";
-            }
-        }
-
-        async function loadSafetyAlerts() {
-            const container = document.getElementById('safety-alerts');
-            container.innerHTML = '<div class="loading">Loading...</div>';
-            try {
-                const res = await fetch(`${API_BASE}/safety/anomalies`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ severity: "all" })
-                });
-                const data = await res.json();
-                // The endpoint left-joins queries to anomalies, so rows with
-                // no match still come back with null fields - filter those out.
-                const rows = Array.isArray(data) ? data.filter(item => item.anomaly_type) : [];
-                container.innerHTML = '';
-                if (rows.length > 0) {
-                    rows.slice(0, 5).forEach(item => {
-                        const sev = (item.severity || 'medium').toLowerCase();
-                        const badge = sev === 'warning' ? 'medium' : sev;
-                        const colors = { critical: '#dc2626', high: '#ea580c', medium: '#ca8a04', low: '#16a34a', warning: '#ca8a04' };
-                        container.innerHTML += `
-                            <div class="alert-item" style="border-color: ${colors[sev] || '#ca8a04'};">
-                                <span class="status-badge status-${badge}">${sev}</span>
-                                <strong>${item.anomaly_type || 'Alert'}</strong> - ${item.description || ''}
-                            </div>
-                        `;
-                    });
-                    document.getElementById('anomaly-count').textContent = String(rows.length);
-                    document.getElementById('critical-count').textContent = String(rows.filter(r => r.severity === 'critical').length);
-                    const latest = rows.map(r => r.timestamp).filter(Boolean).sort().slice(-1)[0];
-                    document.getElementById('last-detection').textContent = latest ? new Date(latest).toLocaleTimeString() : new Date().toLocaleTimeString();
-                } else {
-                    container.innerHTML = '<div style="color:#94a3b8;">No active alerts</div>';
-                    document.getElementById('anomaly-count').textContent = "0";
-                    document.getElementById('critical-count').textContent = "0";
-                    document.getElementById('last-detection').textContent = "--";
-                }
-            } catch (e) {
-                container.innerHTML = '<div class="error">Failed to load alerts</div>';
-                document.getElementById('anomaly-count').textContent = "?";
-                document.getElementById('critical-count').textContent = "?";
-            }
-        }
-
-        // Anomaly counts come from the same request loadSafetyAlerts() already
-        // makes, so this just re-triggers that instead of double-fetching.
-        async function loadAnomalies() {
-            return loadSafetyAlerts();
-        }
-
-        async function loadInsightCategory(category, ids) {
-            try {
-                const res = await fetch(`${API_BASE}/planning/insights`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ category })
-                });
-                const data = await res.json();
-                const rows = Array.isArray(data) ? data.filter(item => item.insight) : [];
-                if (rows.length === 0) {
-                    document.getElementById(ids.status).textContent = "No live data yet";
-                    document.getElementById(ids.action).textContent = "--";
-                    document.getElementById(ids.updated).textContent = "--";
-                    return;
-                }
-                const latest = rows.sort((a, b) => String(a.timestamp).localeCompare(String(b.timestamp))).slice(-1)[0];
-                document.getElementById(ids.status).textContent = latest.insight;
-                document.getElementById(ids.action).textContent = latest.recommended_action || "--";
-                document.getElementById(ids.updated).textContent = latest.timestamp ? new Date(latest.timestamp).toLocaleTimeString() : new Date().toLocaleTimeString();
-            } catch (e) {
-                document.getElementById(ids.status).textContent = "Failed to load";
-                document.getElementById(ids.action).textContent = "--";
-                document.getElementById(ids.updated).textContent = "--";
-            }
-        }
-
-        async function loadTraffic() {
-            await loadInsightCategory("traffic", { status: "traffic-status", action: "traffic-action", updated: "traffic-updated" });
-        }
-
-        async function loadTransit() {
-            await loadInsightCategory("transit", { status: "transit-status", action: "transit-action", updated: "transit-updated" });
-        }
-
-        async function loadEnvironment() {
-            await loadInsightCategory("environment", { status: "env-status", action: "env-action", updated: "env-updated" });
-        }
-
-        // Auto-load on page load
-        window.onload = function() {
-            loadSafetyAlerts();
-            loadAnomalies();
-            loadTraffic();
-            loadTransit();
-            loadEnvironment();
-        };
-
-        // Poll for updates every 10 seconds
-        setInterval(() => {
-            loadSafetyAlerts();
-            loadTraffic();
-            loadTransit();
-            loadEnvironment();
-        }, 10000);
-    </script>
+function formatTime(value){if(!value)return'unknown time';const d=new Date(value);return Number.isNaN(d.getTime())?String(value):d.toLocaleTimeString()}
+function escapeHtml(value){return String(value??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]))}
+loadAll();setInterval(loadAll,10000);
+</script>
 </body>
 </html>
