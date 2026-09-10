@@ -60,6 +60,7 @@ def run_unified() -> None:
         answerer = rag.create_rag_answerer(vector_server)
 
     api = CityOperationsAPI(host="0.0.0.0", port=port)
+    api.register_root_endpoint()
     api.register_safety_endpoints(anomalies)
     api.register_planning_endpoints(insights)
     api.register_health_endpoint()
