@@ -13,13 +13,21 @@ class CityOperationsAPI:
             host=host, port=port, with_schema_endpoint=True, with_cors=True
         )
 
+    def _rest(self, route: str, schema, methods):
+        return pw.io.http.rest_connector(
+            webserver=self.webserver,
+            route=route,
+            schema=schema,
+            methods=methods,
+            autocommit_duration_ms=50,
+            delete_completed_queries=True,
+        )
+
     def register_root_endpoint(self) -> None:
         class RootQuery(pw.Schema):
             pass
 
-        queries, writer = pw.io.http.rest_connector(
-            webserver=self.webserver, route="/", schema=RootQuery, methods=("GET",)
-        )
+        queries, writer = self._rest("/", RootQuery, ("GET",))
         writer(queries.select(
             query_id=queries.id,
             result=(
@@ -37,20 +45,15 @@ class CityOperationsAPI:
         class HealthQuery(pw.Schema):
             pass
 
-        queries, writer = pw.io.http.rest_connector(
-            webserver=self.webserver, route="/healthz", schema=HealthQuery, methods=("GET",)
-        )
+        queries, writer = self._rest("/healthz", HealthQuery, ("GET",))
         writer(queries.select(query_id=queries.id, result="ok"))
 
     def register_safety_endpoints(self, anomalies: pw.Table) -> None:
         class Query(pw.Schema):
             severity: str = pw.column_definition(default_value="all")
 
-        queries, writer = pw.io.http.rest_connector(
-            webserver=self.webserver, route="/safety/anomalies", schema=Query, methods=("POST",)
-        )
+        queries, writer = self._rest("/safety/anomalies", Query, ("POST",))
 
-        # Materialize an `all` view so one request can return the complete stream.
         all_anomalies = anomalies.select(
             timestamp=pw.this.timestamp,
             source=pw.this.source,
@@ -99,9 +102,7 @@ class CityOperationsAPI:
         class Query(pw.Schema):
             category: str = pw.column_definition(default_value="all")
 
-        queries, writer = pw.io.http.rest_connector(
-            webserver=self.webserver, route="/planning/insights", schema=Query, methods=("POST",)
-        )
+        queries, writer = self._rest("/planning/insights", Query, ("POST",))
         joined = queries.join(insights, queries.category == insights.category)
         writer(joined.select(
             query_id=queries.id,
@@ -124,29 +125,24 @@ class CityOperationsAPI:
         class StatusQuery(pw.Schema):
             pass
 
-        status_queries, status_writer = pw.io.http.rest_connector(
-            webserver=self.webserver, route="/planning/status", schema=StatusQuery, methods=("GET",)
-        )
+        status_queries, status_writer = self._rest("/planning/status", StatusQuery, ("GET",))
         status_writer(status_queries.select(
             query_id=status_queries.id, result="insights pipeline is running"
         ))
 
     def register_rag_endpoints(self, answerer: BaseRAGQuestionAnswerer) -> None:
-        queries, writer = pw.io.http.rest_connector(
-            webserver=self.webserver, route="/v2/answer", schema=answerer.AnswerQuerySchema, methods=("POST",)
+        queries, writer = self._rest(
+            "/v2/answer", answerer.AnswerQuerySchema, ("POST",)
         )
         writer(answerer.answer_query(queries))
 
-        retrieve_queries, retrieve_writer = pw.io.http.rest_connector(
-            webserver=self.webserver, route="/v1/retrieve", schema=answerer.RetrieveQuerySchema, methods=("POST",)
+        retrieve_queries, retrieve_writer = self._rest(
+            "/v1/retrieve", answerer.RetrieveQuerySchema, ("POST",)
         )
         retrieve_writer(answerer.retrieve(retrieve_queries))
 
-        stats_queries, stats_writer = pw.io.http.rest_connector(
-            webserver=self.webserver,
-            route="/v1/statistics",
-            schema=answerer.StatisticsQuerySchema,
-            methods=("GET", "POST"),
+        stats_queries, stats_writer = self._rest(
+            "/v1/statistics", answerer.StatisticsQuerySchema, ("GET", "POST")
         )
         stats_writer(answerer.statistics(stats_queries))
 
