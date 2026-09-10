@@ -21,6 +21,23 @@ class CityOperationsAPI:
             host=host, port=port, with_schema_endpoint=True, with_cors=True
         )
 
+    def register_root_endpoint(self) -> None:
+        """Provide a friendly landing endpoint instead of the default 404."""
+        class RootQuery(pw.Schema):
+            pass
+
+        queries, writer = pw.io.http.rest_connector(
+            webserver=self.webserver, route="/", schema=RootQuery, methods=("GET",)
+        )
+        writer(queries.select(
+            query_id=queries.id,
+            result=(
+                "Pathway Urban Safety & Planning API is running. "
+                "Health: /healthz | Safety: /safety/anomalies | "
+                "Planning: /planning/insights | RAG: /v2/answer"
+            ),
+        ))
+
     def register_health_endpoint(self) -> None:
         class HealthQuery(pw.Schema):
             pass
