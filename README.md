@@ -356,6 +356,6 @@ Distributed under the MIT License. See `LICENSE` for more information.
 
 ## 📧 Contact
 
-Project Link: [https://github.com/your-username/pathway-safety-urban-planning](https://github.com/your-username/pathway-safety-urban-planning)
+Project Link: [https://github.com/chenthurr/pathway-safety-urban-planning](https://github.com/your-username/pathway-safety-urban-planning)
 
 Built with ❤️ using [Pathway AI](https://pathway.com)
