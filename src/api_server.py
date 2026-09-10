@@ -22,7 +22,7 @@ class CityOperationsAPI:
         )
 
     def register_root_endpoint(self) -> None:
-        """Provide a friendly landing endpoint instead of the default 404."""
+        """Provide a useful service dashboard/status payload instead of 404."""
         class RootQuery(pw.Schema):
             pass
 
@@ -32,9 +32,25 @@ class CityOperationsAPI:
         writer(queries.select(
             query_id=queries.id,
             result=(
-                "Pathway Urban Safety & Planning API is running. "
-                "Health: /healthz | Safety: /safety/anomalies | "
-                "Planning: /planning/insights | RAG: /v2/answer"
+                "Pathway Urban Safety & Planning\n"
+                "STATUS: ONLINE\n"
+                "\n"
+                "SYSTEM\n"
+                "- Live data pipeline: running\n"
+                "- Safety anomaly detection: enabled\n"
+                "- Urban planning insights: enabled\n"
+                "- Gemini RAG assistant: enabled\n"
+                "\n"
+                "API ENDPOINTS\n"
+                "- Health: GET /healthz\n"
+                "- Safety anomalies: POST /safety/anomalies\n"
+                "- Planning insights: POST /planning/insights\n"
+                "- Planning status: GET /planning/status\n"
+                "- RAG answer: POST /v2/answer\n"
+                "- RAG retrieval: POST /v1/retrieve\n"
+                "- RAG statistics: GET /v1/statistics\n"
+                "\n"
+                "The service is backed by Pathway real-time data processing and Gemini."
             ),
         ))
 
