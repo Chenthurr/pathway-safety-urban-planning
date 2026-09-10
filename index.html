@@ -113,7 +113,11 @@ async function loadPlanning(){
 }
 
 async function checkRag(){
-  try{await fetchJson('/v1/statistics',{},10000);$('rag').textContent='Ready';return true}catch{$('rag').textContent='Unavailable';return false}
+  try{
+    await fetchJson('/v1/statistics',{method:'POST',body:'{}'},10000);
+    $('rag').textContent='Ready';
+    return true;
+  }catch{$('rag').textContent='Unavailable';return false}
 }
 
 async function loadAll(){
