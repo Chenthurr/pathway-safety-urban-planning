@@ -48,16 +48,10 @@ class CityOperationsAPI:
         writer(queries.select(query_id=queries.id, result="ok"))
 
     def register_safety_endpoints(self, anomalies: pw.Table) -> None:
-        """Return live anomaly rows in Pathway's required id/result format.
-
-        The old endpoint attempted to return arbitrary columns directly from
-        rest_connector. Pathway REST responses require an id and result
-        column, which caused the dashboard requests to fail with HTTP 500.
-        We serialize each live anomaly into result JSON instead.
-        """
+        """Return live anomaly rows using Pathway's id/result REST contract."""
 
         class Query(pw.Schema):
-            severity: str = pw.column_definition(default_value="all")
+            severity: str = pw.column_definition(default_value="critical")
 
         queries, writer = pw.io.http.rest_connector(
             webserver=self.webserver,
@@ -66,11 +60,8 @@ class CityOperationsAPI:
             methods=("POST",),
         )
 
-        # The dashboard asks for "all".  Keep the endpoint simple and return
-        # the complete live anomaly stream; the browser performs presentation
-        # filtering/counting without changing the Pathway stream itself.
-        live = queries.join(anomalies, queries.id == queries.id)
-        result = live.select(
+        joined = queries.join(anomalies, queries.severity == anomalies.severity)
+        result = joined.select(
             query_id=queries.id,
             result=pw.apply(
                 lambda timestamp, source, anomaly_type, description, severity, lat, lon: json.dumps(
@@ -97,7 +88,7 @@ class CityOperationsAPI:
 
     def register_planning_endpoints(self, insights: pw.Table) -> None:
         class Query(pw.Schema):
-            category: str = pw.column_definition(default_value="all")
+            category: str = pw.column_definition(default_value="traffic")
 
         queries, writer = pw.io.http.rest_connector(
             webserver=self.webserver,
@@ -106,8 +97,8 @@ class CityOperationsAPI:
             methods=("POST",),
         )
 
-        live = queries.join(insights, queries.id == queries.id)
-        result = live.select(
+        joined = queries.join(insights, queries.category == insights.category)
+        result = joined.select(
             query_id=queries.id,
             result=pw.apply(
                 lambda timestamp, category, insight, confidence, action: json.dumps(
