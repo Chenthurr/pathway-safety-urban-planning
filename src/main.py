@@ -9,6 +9,7 @@ from src.safety_pipeline import SafetyAnomalyDetector
 from src.planning_pipeline import UrbanPlanningEngine
 from src.rag_engine import CityRAGEngine
 from src.api_server import CityOperationsAPI
+from src.dashboard_server import start_dashboard
 
 
 def load_config(mode: str) -> dict:
@@ -28,7 +29,8 @@ def llm_config(config: dict) -> dict:
 
 def run_unified() -> None:
     config = load_config("unified")
-    port = int(os.getenv("PORT", config["server"]["port"]))
+    public_port = int(os.getenv("PORT", config["server"]["port"]))
+    pathway_port = public_port + 1
     cfg = llm_config(config)
     sources = config["sources"]
     alerts = create_safety_alert_table(sources["safety_alerts"]["path"])
@@ -59,14 +61,18 @@ def run_unified() -> None:
         vector_server = rag.build_unified_index(alerts, insights)
         answerer = rag.create_rag_answerer(vector_server)
 
-    api = CityOperationsAPI(host="0.0.0.0", port=port)
+    # The visual dashboard owns Render's public port and proxies all API
+    # traffic to Pathway's REST server on a private localhost port.
+    start_dashboard(public_port, pathway_port)
+    api = CityOperationsAPI(host="127.0.0.1", port=pathway_port)
     api.register_root_endpoint()
     api.register_safety_endpoints(anomalies)
     api.register_planning_endpoints(insights)
     api.register_health_endpoint()
     if answerer is not None:
         api.register_rag_endpoints(answerer)
-    print(f"City Operations API configured on 0.0.0.0:{port}", flush=True)
+    print(f"Visual dashboard configured on 0.0.0.0:{public_port}", flush=True)
+    print(f"Pathway API configured on 127.0.0.1:{pathway_port}", flush=True)
     api.run()
 
 
