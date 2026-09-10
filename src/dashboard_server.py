@@ -19,9 +19,9 @@ DASHBOARD_HTML = r'''<!doctype html>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Urban Safety & Planning</title>
+<title>City Operations Center</title>
 <style>
-:root{--bg:#07111f;--panel:#0d1b2d;--panel2:#10233a;--text:#eaf2ff;--muted:#8fa4bd;--line:#20344c;--ok:#39d98a;--warn:#ffcc66;--danger:#ff6b6b;--accent:#61a8ff}
+:root{--bg:#07111f;--panel:#0d1b2d;--panel2:#10233a;--text:#eaf2ff;--muted:#8fa4bd;--line:#20344c;--ok:#39d98a;--accent:#61a8ff}
 *{box-sizing:border-box} body{margin:0;font-family:Inter,Segoe UI,Arial,sans-serif;background:linear-gradient(135deg,#06101d,#0b1728 55%,#07111f);color:var(--text);min-height:100vh}
 .wrap{max-width:1200px;margin:auto;padding:28px 22px 44px}.top{display:flex;justify-content:space-between;align-items:flex-start;gap:18px;margin-bottom:24px}.brand h1{margin:0;font-size:30px;letter-spacing:-.6px}.brand p{margin:7px 0 0;color:var(--muted)}
 .badge{display:flex;align-items:center;gap:9px;background:#0c241c;border:1px solid #1e6648;color:#8ff0bd;padding:9px 13px;border-radius:999px;font-weight:700;font-size:13px}.dot{width:9px;height:9px;border-radius:50%;background:var(--ok);box-shadow:0 0 12px var(--ok)}
@@ -34,21 +34,21 @@ DASHBOARD_HTML = r'''<!doctype html>
 <body>
 <div class="wrap">
   <div class="top">
-    <div class="brand"><h1>Urban Safety & Planning</h1><p>Real-time Pathway pipeline with Gemini-powered intelligence</p></div>
+    <div class="brand"><h1>City Operations Center</h1><p>Real-time public safety & urban planning powered by Pathway</p></div>
     <div style="display:flex;gap:8px;align-items:center"><button class="refresh" onclick="loadAll()">Refresh</button><div class="badge"><span class="dot"></span> SYSTEM ONLINE</div></div>
   </div>
   <div class="grid">
     <div class="card"><div class="label">Safety detection</div><div class="value" id="safety">Enabled</div><div class="sub">Anomaly rules active</div></div>
     <div class="card"><div class="label">Planning engine</div><div class="value" id="planning">Running</div><div class="sub">Traffic · transit · environment</div></div>
-    <div class="card"><div class="label">Gemini RAG</div><div class="value" id="rag">Ready</div><div class="sub" id="ragSub">Live knowledge index</div></div>
+    <div class="card"><div class="label">AI RAG</div><div class="value" id="rag">Ready</div><div class="sub" id="ragSub">Live knowledge index</div></div>
     <div class="card"><div class="label">Indexed files</div><div class="value" id="files">—</div><div class="sub" id="indexed">Checking vector store…</div></div>
   </div>
   <div class="two">
     <div class="card section"><h2>Safety anomalies</h2><div id="anomalies" class="list"><div class="empty">Loading live anomaly stream…</div></div></div>
     <div class="card section"><h2>Planning status</h2><div id="status" class="list"><div class="empty">Checking pipeline…</div></div></div>
   </div>
-  <div class="card section chat"><h2>Ask the Gemini RAG assistant</h2><div class="chatbox"><input id="question" placeholder="Ask about safety, traffic, transit, or environment…" onkeydown="if(event.key==='Enter')ask()"><button onclick="ask()">Ask</button></div><div id="answer" class="answer">Ask a question to search the live city knowledge index.</div></div>
-  <div class="footer">Pathway real-time processing · Gemini 2.5 Flash · <a href="/healthz" style="color:#61a8ff">health check</a> · <a href="/v1/statistics" style="color:#61a8ff">RAG statistics</a></div>
+  <div class="card section chat"><h2>Ask the AI planning assistant</h2><div class="chatbox"><input id="question" placeholder="Ask about safety, traffic, transit, or environment…" onkeydown="if(event.key==='Enter')ask()"><button onclick="ask()">Ask</button></div><div id="answer" class="answer">Ask a question to search the live city knowledge index.</div></div>
+  <div class="footer">Pathway real-time processing · AI planning assistant · <a href="/healthz" style="color:#61a8ff">health check</a> · <a href="/v1/statistics" style="color:#61a8ff">RAG statistics</a></div>
 </div>
 <script>
 const $=id=>document.getElementById(id);
@@ -62,7 +62,7 @@ async function loadAll(){
   try{const r=await fetch('/safety/anomalies',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({severity:'all'})}); const j=await r.json(); const a=rows(j); $('anomalies').innerHTML=a.length?a.slice(0,12).map(x=>'<div class="item"><strong>'+escapeHtml(text(x.anomaly_type||x.severity||'Safety event'))+'</strong><span>'+escapeHtml(text(x.description||x.result||JSON.stringify(x)))+'</span></div>').join(''):'<div class="empty">No anomaly records returned.</div>';}catch(e){$('anomalies').innerHTML='<div class="empty">Anomaly feed unavailable</div>'}
 }
 function escapeHtml(s){return text(s).replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]))}
-async function ask(){const q=$('question').value.trim();if(!q)return;$('answer').textContent='Thinking…';try{const r=await api('/v2/answer',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt:q,return_context_docs:false})});const a=r.answer||r.result||r; $('answer').textContent=typeof a==='string'?a:JSON.stringify(a,null,2);}catch(e){$('answer').textContent='Unable to query Gemini RAG: '+e.message}}
+async function ask(){const q=$('question').value.trim();if(!q)return;$('answer').textContent='Thinking…';try{const r=await api('/v2/answer',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt:q,return_context_docs:false})});const a=r.answer||r.result||r; $('answer').textContent=typeof a==='string'?a:JSON.stringify(a,null,2);}catch(e){$('answer').textContent='Unable to query AI planning assistant: '+e.message}}
 loadAll();setInterval(loadAll,30000);
 </script>
 </body>
