@@ -18,7 +18,7 @@ main{max-width:1250px;margin:auto;padding:24px}.toolbar{display:flex;justify-con
 </head>
 <body>
 <header>
-  <div><h1>🌆 City Operations Center</h1><p>Real-time Public Safety & Urban Planning powered by Pathway + Gemini</p></div>
+  <div><h1>🌆 City Operations Center</h1><p>Real-time Public Safety & Urban Planning powered by Pathway</p></div>
   <div class="live"><span id="liveDot" class="dot"></span><span id="liveText">Connecting to Pathway…</span></div>
 </header>
 <main>
@@ -27,7 +27,7 @@ main{max-width:1250px;margin:auto;padding:24px}.toolbar{display:flex;justify-con
     <div class="card"><div class="label">Safety detection</div><div class="value" id="safety">Checking…</div><div class="sub">Pathway anomaly stream</div></div>
     <div class="card"><div class="label">Active anomalies</div><div class="value" id="anomalyCount">—</div><div class="sub" id="criticalCount">Critical: —</div></div>
     <div class="card"><div class="label">Planning engine</div><div class="value" id="planning">Checking…</div><div class="sub">Traffic · transit · environment</div></div>
-    <div class="card"><div class="label">Gemini RAG</div><div class="value" id="rag">Checking…</div><div class="sub">Live Pathway vector index</div></div>
+    <div class="card"><div class="label">AI RAG</div><div class="value" id="rag">Checking…</div><div class="sub">Live Pathway vector index</div></div>
   </div>
 
   <div class="two">
@@ -36,13 +36,13 @@ main{max-width:1250px;margin:auto;padding:24px}.toolbar{display:flex;justify-con
   </div>
 
   <div class="card chat">
-    <div class="section"><h2>🤖 Ask the Gemini RAG assistant</h2>
+    <div class="section"><h2>🤖 Ask the AI planning assistant</h2>
       <div class="chatbox"><input id="question" placeholder="e.g. What areas need immediate attention?" onkeydown="if(event.key==='Enter')askRag()"><button class="btn primary" id="ask" onclick="askRag()">Ask</button></div>
-      <div id="answer" class="answer">Ask a question. The request is sent to the Pathway /v2/answer endpoint running on Render, where Gemini answers using the live indexed data.</div>
+      <div id="answer" class="answer">Ask a question. The request is sent to the Pathway /v2/answer endpoint running on Render, where the AI answers using the live indexed data.</div>
     </div>
   </div>
 
-  <div class="footer">GitHub Pages UI → Render → Pathway real-time pipeline → Gemini 2.5 Flash · <a href="https://pathway-safety-urban-planning.onrender.com/healthz" target="_blank" rel="noopener">health</a> · <a href="https://pathway-safety-urban-planning.onrender.com/v1/statistics" target="_blank" rel="noopener">RAG statistics</a></div>
+  <div class="footer">GitHub Pages UI → Render → Pathway real-time pipeline → AI planning assistant · <a href="https://pathway-safety-urban-planning.onrender.com/healthz" target="_blank" rel="noopener">health</a> · <a href="https://pathway-safety-urban-planning.onrender.com/v1/statistics" target="_blank" rel="noopener">RAG statistics</a></div>
 </main>
 <script>
 const API_BASE='https://pathway-safety-urban-planning.onrender.com';
@@ -119,7 +119,7 @@ async function checkRag(){
 async function loadAll(){
   $('refresh').disabled=true;
   try{
-    const health=await fetchJson('/healthz',{},10000);
+    await fetchJson('/healthz',{},10000);
     setOnline(true);$('safety').textContent='Enabled';$('planning').textContent='Running';
     const [safetyOk,planningOk]=await Promise.all([loadSafety(),loadPlanning()]);
     await checkRag();
@@ -133,13 +133,13 @@ async function loadAll(){
 
 async function askRag(){
   const q=$('question').value.trim();if(!q)return;
-  const button=$('ask');button.disabled=true;$('answer').className='answer';$('answer').textContent='Thinking… querying the live Pathway vector index with Gemini…';
+  const button=$('ask');button.disabled=true;$('answer').className='answer';$('answer').textContent='Thinking… querying the live Pathway vector index…';
   try{
     const data=await fetchJson('/v2/answer',{method:'POST',body:JSON.stringify({prompt:q,return_context_docs:false})},90000);
     const answer=data.answer||data.result||data.response||data;
     $('answer').textContent=typeof answer==='string'?answer:JSON.stringify(answer,null,2);
     $('answer').className='answer ok';
-  }catch(e){$('answer').textContent='Unable to query Pathway Gemini RAG: '+e.message;$('answer').className='answer error'}
+  }catch(e){$('answer').textContent='Unable to query Pathway AI assistant: '+e.message;$('answer').className='answer error'}
   finally{button.disabled=false}
 }
 
