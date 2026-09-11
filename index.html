@@ -11,7 +11,7 @@ header{background:linear-gradient(135deg,#183b82,#3478df);padding:24px 30px;disp
 header h1{margin:0;font-size:28px}header p{margin:6px 0 0;color:#d9e7ff}.live{display:flex;align-items:center;gap:9px;background:rgba(255,255,255,.14);padding:9px 14px;border-radius:999px;font-weight:700;font-size:13px}.dot{width:9px;height:9px;border-radius:50%;background:#4ade80;box-shadow:0 0 12px #4ade80}.dot.off{background:#ff6b6b;box-shadow:none}
 main{max-width:1250px;margin:auto;padding:24px}.toolbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;color:var(--muted);font-size:13px}.btn{background:#0c1a2b;color:#d9e7ff;border:1px solid var(--line);border-radius:9px;padding:8px 12px;cursor:pointer}.btn.primary{background:var(--accent);color:#06101d;border:0;font-weight:800}.btn:disabled{opacity:.6;cursor:wait}
 .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}.card{background:rgba(13,27,45,.92);border:1px solid var(--line);border-radius:15px;padding:18px;box-shadow:0 10px 26px rgba(0,0,0,.15)}.label{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.8px}.value{font-size:24px;font-weight:800;margin-top:8px}.sub{font-size:12px;color:var(--muted);margin-top:5px}
-.two{display:grid;grid-template-columns:1.35fr .65fr;gap:14px;margin-top:14px}.section h2{font-size:16px;margin:0 0 13px}.list{display:grid;gap:9px;max-height:320px;overflow:auto}.item{background:var(--panel2);border:1px solid #1b324c;border-radius:11px;padding:11px 12px}.item strong{display:block;font-size:13px}.item span{display:block;color:var(--muted);font-size:12px;margin-top:4px;line-height:1.45}.empty{color:var(--muted);font-size:13px;padding:14px 0}.sev{display:inline-block;margin-right:7px;padding:2px 7px;border-radius:999px;font-size:10px;font-weight:800;text-transform:uppercase}.critical{background:#7f1d1d;color:#fecaca}.high{background:#7c2d12;color:#fed7aa}.medium{background:#713f12;color:#fde68a}.low{background:#14532d;color:#bbf7d0}
+.two{display:grid;grid-template-columns:1.35fr .65fr;gap:14px;margin-top:14px}.section h2{font-size:16px;margin:0 0 13px}.list{display:grid;gap:9px;max-height:320px;overflow:auto}.item{background:var(--panel2);border:1px solid #1b324c;border-radius:11px;padding:11px 12px}.item strong{display:block;font-size:13px}.item span{display:block;color:var(--muted);font-size:12px;margin-top:4px;line-height:1.45}.empty{color:var(--muted);font-size:13px;padding:14px 0}.sev{display:inline-block;margin-right:7px;padding:2px 7px;border-radius:999px;font-size:10px;font-weight:800;text-transform:uppercase}.critical{background:#7f1d1d;color:#fecaca}.high{background:#7c2d12;color:#fed7aa}.medium{background:#713f12;color:#fde68a}.low{background:#14532d;color:#bbf7d0}.warning{background:#713f12;color:#fde68a}
 .chat{margin-top:14px}.chatbox{display:flex;gap:9px}.chatbox input{flex:1;background:#081625;color:var(--text);border:1px solid var(--line);border-radius:10px;padding:13px;font-size:14px;outline:none}.chatbox input:focus{border-color:var(--accent)}.answer{margin-top:12px;background:#081625;border:1px solid var(--line);border-radius:11px;padding:14px;min-height:80px;white-space:pre-wrap;line-height:1.55;font-size:13px}.error{color:#ff8b8b}.ok{color:#8ff0bd}.footer{margin-top:18px;color:var(--muted);font-size:11px;text-align:center}.footer a{color:#61a8ff}
 @media(max-width:900px){.grid{grid-template-columns:repeat(2,1fr)}.two{grid-template-columns:1fr}}@media(max-width:560px){.grid{grid-template-columns:1fr}header{padding:20px;flex-direction:column;align-items:flex-start}main{padding:16px}}
 </style>
@@ -81,35 +81,44 @@ function setOnline(online){
 }
 
 async function loadSafety(){
-  const severities=['critical','high','medium','low'];
-  const responses=await Promise.allSettled(severities.map(severity=>fetchJson('/safety/anomalies',{method:'POST',body:JSON.stringify({severity})})));
-  const rows=[];
-  responses.forEach(r=>{if(r.status==='fulfilled') rows.push(...unwrapRows(r.value))});
-  const unique=new Map();
-  rows.forEach(x=>{const key=[x.timestamp,x.anomaly_type,x.description,x.severity].join('|');unique.set(key,x)});
-  const data=[...unique.values()].sort((a,b)=>String(b.timestamp||'').localeCompare(String(a.timestamp||'')));
-  $('anomalyCount').textContent=data.length;
-  $('criticalCount').textContent='Critical: '+data.filter(x=>String(x.severity).toLowerCase()==='critical').length;
-  $('anomalies').innerHTML=data.length?data.slice(0,12).map(x=>{
-    const sev=String(x.severity||'medium').toLowerCase();
-    return `<div class="item"><strong><span class="sev ${sev}">${escapeHtml(sev)}</span>${escapeHtml(x.anomaly_type||'Safety event')}</strong><span>${escapeHtml(x.description||'')} · ${formatTime(x.timestamp)}</span></div>`;
-  }).join(''):'<div class="empty">No anomaly records currently returned.</div>';
-  return responses.some(r=>r.status==='fulfilled');
+  try{
+    const response=await fetchJson('/safety/anomalies',{method:'POST',body:JSON.stringify({severity:'all'})},15000);
+    const data=unwrapRows(response).filter(x=>x&&x.anomaly_type);
+    const unique=new Map();
+    data.forEach(x=>{const key=[x.timestamp,x.anomaly_type,x.description,x.severity].join('|');unique.set(key,x)});
+    const rows=[...unique.values()].sort((a,b)=>String(b.timestamp||'').localeCompare(String(a.timestamp||'')));
+    $('anomalyCount').textContent=rows.length;
+    $('criticalCount').textContent='Critical: '+rows.filter(x=>String(x.severity).toLowerCase()==='critical').length;
+    $('anomalies').innerHTML=rows.length?rows.slice(0,12).map(x=>{
+      const sev=String(x.severity||'medium').toLowerCase();
+      return `<div class="item"><strong><span class="sev ${sev}">${escapeHtml(sev)}</span>${escapeHtml(x.anomaly_type||'Safety event')}</strong><span>${escapeHtml(x.description||'')} · ${formatTime(x.timestamp)}</span></div>`;
+    }).join(''):'<div class="empty">No anomaly records currently returned.</div>';
+    return true;
+  }catch(e){
+    $('anomalyCount').textContent='—';
+    $('criticalCount').textContent='Critical: —';
+    $('anomalies').innerHTML='<div class="empty">Live anomaly query unavailable.</div>';
+    return false;
+  }
 }
 
 async function loadPlanning(){
-  const categories=['traffic','transit','environment'];
-  const responses=await Promise.allSettled(categories.map(category=>fetchJson('/planning/insights',{method:'POST',body:JSON.stringify({category})})));
-  const rows=[];
-  responses.forEach(r=>{if(r.status==='fulfilled') rows.push(...unwrapRows(r.value))});
-  const latest={};
-  rows.forEach(x=>{if(x.category) latest[x.category]=x});
-  const labels={traffic:'🚦 Traffic',transit:'🚌 Transit',environment:'🌤️ Environment'};
-  $('planningList').innerHTML=categories.map(category=>{
-    const x=latest[category];
-    return x?`<div class="item"><strong>${labels[category]}</strong><span>${escapeHtml(x.insight||'No insight')}<br><b>Action:</b> ${escapeHtml(x.recommended_action||'—')} · ${formatTime(x.timestamp)}</span></div>`:`<div class="item"><strong>${labels[category]}</strong><span>No live insight returned.</span></div>`;
-  }).join('');
-  return responses.some(r=>r.status==='fulfilled');
+  try{
+    const response=await fetchJson('/planning/insights',{method:'POST',body:JSON.stringify({category:'all'})},15000);
+    const rows=unwrapRows(response).filter(x=>x&&x.category&&x.category!=='all');
+    const latest={};
+    rows.forEach(x=>{latest[x.category]=x});
+    const categories=['traffic','transit','environment'];
+    const labels={traffic:'🚦 Traffic',transit:'🚌 Transit',environment:'🌤️ Environment'};
+    $('planningList').innerHTML=categories.map(category=>{
+      const x=latest[category];
+      return x?`<div class="item"><strong>${labels[category]}</strong><span>${escapeHtml(x.insight||'No insight')}<br><b>Action:</b> ${escapeHtml(x.recommended_action||'—')} · ${formatTime(x.timestamp)}</span></div>`:`<div class="item"><strong>${labels[category]}</strong><span>No live insight returned.</span></div>`;
+    }).join('');
+    return true;
+  }catch(e){
+    $('planningList').innerHTML='<div class="empty">Live planning query unavailable.</div>';
+    return false;
+  }
 }
 
 async function checkRag(){
@@ -125,10 +134,9 @@ async function loadAll(){
   try{
     await fetchJson('/healthz',{},10000);
     setOnline(true);$('safety').textContent='Enabled';$('planning').textContent='Running';
-    const [safetyOk,planningOk]=await Promise.all([loadSafety(),loadPlanning()]);
-    await checkRag();
-    if(!safetyOk) $('safety').textContent='No data';
-    if(!planningOk) $('planning').textContent='No data';
+    const results=await Promise.all([loadSafety(),loadPlanning(),checkRag()]);
+    if(!results[0]) $('safety').textContent='Live query error';
+    if(!results[1]) $('planning').textContent='Live query error';
     $('updated').textContent='Last live refresh: '+new Date().toLocaleTimeString();
   }catch(e){
     setOnline(false);$('safety').textContent='Offline';$('planning').textContent='Offline';$('rag').textContent='Offline';$('updated').textContent='Pathway API error: '+e.message;
